@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/otherworlding/.claude/memory)",
+      "Bash(ls /Users/otherworlding/minder-app)",
+      "Bash(git -C /Users/otherworlding/minder-app status)",
+      "Bash(git -C /Users/otherworlding/minder-app remote -v)",
+      "Bash(gh auth *)",
+      "Bash(chmod +x /Users/otherworlding/minder-app/autopush.sh)",
+      "Bash(launchctl load *)"
+    ]
+  }
+}
