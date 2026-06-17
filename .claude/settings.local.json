@@ -11,7 +11,10 @@
       "Read(//Users/otherworlding/**)",
       "Bash(npx create-next-app@latest chromaboard --typescript --tailwind --app --no-src-dir --no-git --yes)",
       "Bash(npm install *)",
-      "Bash(mkdir -p /Users/otherworlding/chromaboard/lib/colors /Users/otherworlding/chromaboard/components/ui /Users/otherworlding/chromaboard/components/layout /Users/otherworlding/chromaboard/app/new /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/submit /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/palette /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/library /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/review /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/export && echo \"Directories created\")"
+      "Bash(mkdir -p /Users/otherworlding/chromaboard/lib/colors /Users/otherworlding/chromaboard/components/ui /Users/otherworlding/chromaboard/components/layout /Users/otherworlding/chromaboard/app/new /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/submit /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/palette /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/library /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/review /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/export && echo \"Directories created\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3333/)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

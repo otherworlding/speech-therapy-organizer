@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chroma-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/otherworlding/chromaboard", "run", "dev", "--", "--port", "3333"],
+      "port": 3333
+    }
+  ]
+}
