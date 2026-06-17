@@ -7,7 +7,11 @@
       "Bash(git -C /Users/otherworlding/minder-app remote -v)",
       "Bash(gh auth *)",
       "Bash(chmod +x /Users/otherworlding/minder-app/autopush.sh)",
-      "Bash(launchctl load *)"
+      "Bash(launchctl load *)",
+      "Read(//Users/otherworlding/**)",
+      "Bash(npx create-next-app@latest chromaboard --typescript --tailwind --app --no-src-dir --no-git --yes)",
+      "Bash(npm install *)",
+      "Bash(mkdir -p /Users/otherworlding/chromaboard/lib/colors /Users/otherworlding/chromaboard/components/ui /Users/otherworlding/chromaboard/components/layout /Users/otherworlding/chromaboard/app/new /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/submit /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/palette /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/library /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/review /Users/otherworlding/chromaboard/app/productions/\\\\[id\\\\]/export && echo \"Directories created\")"
     ]
   }
 }
