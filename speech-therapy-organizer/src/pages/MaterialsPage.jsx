@@ -31,11 +31,38 @@ function PendingEditor({ material, onSave, onCancel }) {
     ageRange: material.ageRange || '',
     tags: (material.tags || []).join(', '),
     notes: material.notes || '',
+    openExternal: material.openExternal || false,
   })
+  const ext = (material.filePath || '').split('.').pop().toLowerCase()
+  const isPptx = ext === 'pptx'
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <h2>Tag: {material.title}</h2>
+        {isPptx && (
+          <div className="open-mode-toggle">
+            <span className="open-mode-label">Open as:</span>
+            <button
+              type="button"
+              className={`open-mode-btn ${!f.openExternal ? 'active' : ''}`}
+              onClick={() => setF(p => ({ ...p, openExternal: false }))}
+            >
+              In-app slideshow
+            </button>
+            <button
+              type="button"
+              className={`open-mode-btn ${f.openExternal ? 'active' : ''}`}
+              onClick={() => setF(p => ({ ...p, openExternal: true }))}
+            >
+              ↗ Open in PowerPoint
+            </button>
+            {material.openExternal !== undefined && (
+              <span className="open-mode-hint">
+                {material.openExternal ? 'Auto-detected: animations/games found' : 'Auto-detected: plain slideshow'}
+              </span>
+            )}
+          </div>
+        )}
         <MaterialForm
           form={f} setForm={setF}
           onSubmit={e => { e.preventDefault(); onSave(material.id, { ...f, tags: f.tags.split(',').map(t => t.trim()).filter(Boolean) }) }}
@@ -253,7 +280,8 @@ export default function MaterialsPage({ store }) {
       ) : (
         <div className="materials-list">
           {filtered.map(m => (
-            <MaterialCard key={m.id} material={m} onOpen={openMaterial} onDelete={store.deleteMaterial} />
+            <MaterialCard key={m.id} material={m} onOpen={openMaterial} onDelete={store.deleteMaterial}
+            onToggleExternal={(id, val) => store.updateMaterial(id, { openExternal: val })} />
           ))}
         </div>
       )}
