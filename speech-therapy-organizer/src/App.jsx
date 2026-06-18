@@ -37,6 +37,8 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <div className="app-titlebar" />
+      <div className="app-body">
       <Sidebar view={view} setView={setView} />
       <main className="main-content">
         {view === 'clients' && (
@@ -48,6 +50,7 @@ export default function App() {
         )}
         {view === 'reports' && <ReportsPage store={store} />}
       </main>
+      </div>
 
       {showSetup && setupClientId && (
         <SessionSetup

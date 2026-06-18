@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import PdfViewer from './PdfViewer'
 import PptxViewer from './PptxViewer'
 import ImageDeckViewer from './ImageDeckViewer'
+import { externalLabel } from '../../utils/fileTypes'
 
 const IMG_EXT = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i
 const VIDEO_EXT = /\.(mp4|mov|avi|webm)$/i
@@ -47,35 +48,45 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen 
       </div>
 
       <div className="viewer-body">
-        {type === 'pdf' && <PdfViewer filePath={material.filePath} onPageInfo={handlePageInfo} />}
-        {type === 'pptx' && <PptxViewer filePath={material.filePath} onPageInfo={handlePageInfo} />}
-        {type === 'image' && (
+        {material.openExternal && (
+          <div className="viewer-external">
+            <div className="viewer-external-icon">↗</div>
+            <div className="viewer-external-label">{externalLabel(material.filePath)}</div>
+            <p className="viewer-external-hint">This file opens in an external app.</p>
+            <button className="btn-primary" onClick={() => window.api?.openFile(material.filePath)}>
+              Open in {externalLabel(material.filePath)}
+            </button>
+          </div>
+        )}
+        {!material.openExternal && type === 'pdf' && <PdfViewer filePath={material.filePath} onPageInfo={handlePageInfo} />}
+        {!material.openExternal && type === 'pptx' && <PptxViewer filePath={material.filePath} onPageInfo={handlePageInfo} />}
+        {!material.openExternal && type === 'image' && (
           <div className="image-viewer">
             <img src={`file://${material.filePath}`} alt={material.title} className="viewer-image" />
           </div>
         )}
-        {type === 'deck' && (
+        {!material.openExternal && type === 'deck' && (
           <ImageDeckViewer imagePaths={material.imagePaths} onPageInfo={handlePageInfo} />
         )}
-        {type === 'video' && (
+        {!material.openExternal && type === 'video' && (
           <div className="video-viewer">
             <video ref={videoRef} src={`file://${material.filePath}`} controls className="viewer-video" />
           </div>
         )}
-        {type === 'audio' && (
+        {!material.openExternal && type === 'audio' && (
           <div className="audio-viewer">
             <div className="audio-icon">🎵</div>
             <div className="audio-title">{material.title}</div>
             <audio src={`file://${material.filePath}`} controls className="viewer-audio" />
           </div>
         )}
-        {type === 'none' && (
+        {!material.openExternal && type === 'none' && (
           <div className="viewer-empty">
             <div style={{ fontSize: 48 }}>📎</div>
             <p>No file attached to this material.</p>
           </div>
         )}
-        {type === 'unknown' && (
+        {!material.openExternal && type === 'unknown' && (
           <div className="viewer-empty">
             <div style={{ fontSize: 48 }}>📄</div>
             <p>{material.filePath?.split('/').pop()}</p>

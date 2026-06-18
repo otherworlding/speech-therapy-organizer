@@ -1,4 +1,5 @@
 import React from 'react'
+import { externalLabel } from '../utils/fileTypes'
 
 const EXT_ICONS = {
   pdf: '📄', pptx: '📊', ppt: '📊', docx: '📝',
@@ -32,6 +33,9 @@ export default function MaterialCard({ material, onOpen, onDelete, onAssign, sho
         <div className="material-card-title">{material.title}</div>
         <div className="material-card-meta">
           <span className="tag" style={{ background: catColor }}>{material.category}</span>
+          {material.openExternal && (
+            <span className="tag tag-external">↗ {externalLabel(material.filePath)}</span>
+          )}
           {material.ageRange && <span className="tag tag-age">Age {material.ageRange}</span>}
           {material.tags && material.tags.map(t => (
             <span key={t} className="tag tag-plain">{t}</span>

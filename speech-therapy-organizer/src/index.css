@@ -11,13 +11,26 @@
 
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 #root { height: 100vh; }
-.app-shell { display: flex; height: 100vh; }
+
+.app-shell { display: flex; flex-direction: column; height: 100vh; }
+
+/* Full-width drag bar — grabs the window from anywhere across the top */
+.app-titlebar {
+  height: 32px;
+  flex-shrink: 0;
+  background: #15192b;
+  -webkit-app-region: drag;
+  width: 100%;
+}
+
+/* The sidebar + content row sits below the titlebar */
+.app-body { flex: 1; display: flex; overflow: hidden; }
 
 /* ── Sidebar ── */
-.sidebar { width: 220px; flex-shrink: 0; background: var(--sidebar-bg); display: flex; flex-direction: column; padding: 16px 0; -webkit-app-region: drag; }
+.sidebar { width: 220px; flex-shrink: 0; background: var(--sidebar-bg); display: flex; flex-direction: column; padding: 16px 0; }
 .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 20px 20px 24px; color: white; font-weight: 700; font-size: 15px; }
 .logo-icon { font-size: 22px; }
-.sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; -webkit-app-region: no-drag; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: none; background: transparent; color: var(--sidebar-text); font-size: 14px; cursor: pointer; text-align: left; transition: background 0.15s, color 0.15s; }
 .nav-item:hover { background: rgba(255,255,255,0.07); color: white; }
 .nav-item.active { background: var(--sidebar-active); color: white; }
@@ -96,11 +109,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tag { display: inline-block; color: white; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
 .tag-age { background: #888; }
 .tag-plain { background: var(--border); color: var(--text-muted); }
+.tag-external { background: #7c4dff; }
 .repeat-tag { background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; display: inline-block; }
 
 /* ── Drop zone ── */
 .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 20px; background: var(--surface); color: var(--text-muted); font-size: 14px; transition: border-color 0.15s, background 0.15s; cursor: default; }
 .drop-zone.drag-over { border-color: var(--primary); background: #f0f6ff; color: var(--primary); }
+.drop-zone.drop-importing { border-color: var(--warn); background: #fffbeb; color: #92400e; }
 .drop-icon { font-size: 28px; }
 .drop-sub { font-size: 11px; }
 
@@ -197,6 +212,12 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .page-btn { background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 6px; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 .page-btn:disabled { opacity: 0.3; cursor: default; }
 .page-btn:not(:disabled):hover { background: rgba(255,255,255,0.2); }
+
+/* External file launch screen */
+.viewer-external { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: rgba(255,255,255,0.7); text-align: center; }
+.viewer-external-icon { font-size: 52px; line-height: 1; }
+.viewer-external-label { font-size: 22px; font-weight: 700; color: white; }
+.viewer-external-hint { font-size: 13px; color: rgba(255,255,255,0.4); }
 
 /* PDF */
 .pdf-viewer { display: flex; flex-direction: column; width: 100%; height: 100%; }

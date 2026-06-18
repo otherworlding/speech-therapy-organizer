@@ -65,6 +65,11 @@ ipcMain.handle('file:pick', async () => {
 // Open in default OS app
 ipcMain.handle('file:open', async (_, filePath) => { await shell.openPath(filePath); return true })
 
+// Check if path is a directory
+ipcMain.handle('path:is-directory', (_, p) => {
+  try { return fs.statSync(p).isDirectory() } catch { return false }
+})
+
 // Copy single file to library
 ipcMain.handle('file:copy-to-library', async (_, srcPath) => {
   const libDir = path.join(DATA_DIR, 'files')

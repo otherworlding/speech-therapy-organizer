@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   readFileBinary: (filePath) => ipcRenderer.invoke('file:read-binary', filePath),
   fileExists: (filePath) => ipcRenderer.invoke('file:exists', filePath),
   importFolderDeck: (folderPath) => ipcRenderer.invoke('folder:import-deck', folderPath),
+  isDirectory: (p) => ipcRenderer.invoke('path:is-directory', p),
   exportReport: (filename, content) => ipcRenderer.invoke('report:export', { filename, content }),
   copyToClipboard: (text) => ipcRenderer.invoke('clipboard:write', text),
 })
