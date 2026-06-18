@@ -2,23 +2,22 @@ import { useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 const isElectron = typeof window !== 'undefined' && window.api
+const EMPTY = { clients: [], materials: [], sessions: [], goals: [] }
 
 function localLoad() {
-  try { return JSON.parse(localStorage.getItem('sto_data')) || { clients: [], materials: [] } }
-  catch { return { clients: [], materials: [] } }
+  try { return { ...EMPTY, ...JSON.parse(localStorage.getItem('sto_data')) } }
+  catch { return { ...EMPTY } }
 }
-function localSave(data) {
-  localStorage.setItem('sto_data', JSON.stringify(data))
-}
+function localSave(data) { localStorage.setItem('sto_data', JSON.stringify(data)) }
 
 export function useStore() {
-  const [data, setData] = useState({ clients: [], materials: [] })
+  const [data, setData] = useState(EMPTY)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     async function init() {
       const d = isElectron ? await window.api.loadData() : localLoad()
-      setData(d)
+      setData({ ...EMPTY, ...d })
       setLoaded(true)
     }
     init()
@@ -30,73 +29,107 @@ export function useStore() {
     else localSave(next)
   }, [])
 
-  // Clients
+  // ── Clients ──────────────────────────────────────────────────────────
   const addClient = (name, dob, notes) => {
     const next = { ...data, clients: [...data.clients, { id: uuidv4(), name, dob, notes, materialIds: [] }] }
     persist(next)
   }
-
   const updateClient = (id, updates) => {
-    const next = { ...data, clients: data.clients.map(c => c.id === id ? { ...c, ...updates } : c) }
-    persist(next)
+    persist({ ...data, clients: data.clients.map(c => c.id === id ? { ...c, ...updates } : c) })
   }
-
   const deleteClient = (id) => {
-    const next = { ...data, clients: data.clients.filter(c => c.id !== id) }
-    persist(next)
+    persist({ ...data, clients: data.clients.filter(c => c.id !== id) })
   }
-
   const assignMaterial = (clientId, materialId) => {
-    const next = {
+    persist({
       ...data,
       clients: data.clients.map(c =>
         c.id === clientId && !c.materialIds.includes(materialId)
-          ? { ...c, materialIds: [...c.materialIds, materialId] }
-          : c
+          ? { ...c, materialIds: [...c.materialIds, materialId] } : c
       )
-    }
-    persist(next)
+    })
   }
-
   const unassignMaterial = (clientId, materialId) => {
-    const next = {
+    persist({
       ...data,
       clients: data.clients.map(c =>
-        c.id === clientId
-          ? { ...c, materialIds: c.materialIds.filter(id => id !== materialId) }
-          : c
+        c.id === clientId ? { ...c, materialIds: c.materialIds.filter(id => id !== materialId) } : c
       )
-    }
-    persist(next)
+    })
   }
 
-  // Materials
+  // ── Materials ─────────────────────────────────────────────────────────
   const addMaterial = (material) => {
-    const next = { ...data, materials: [...data.materials, { id: uuidv4(), ...material }] }
+    const m = { id: uuidv4(), tags: [], ...material }
+    const next = { ...data, materials: [...data.materials, m] }
     persist(next)
-    return next.materials[next.materials.length - 1]
+    return m
   }
-
   const updateMaterial = (id, updates) => {
-    const next = { ...data, materials: data.materials.map(m => m.id === id ? { ...m, ...updates } : m) }
-    persist(next)
+    persist({ ...data, materials: data.materials.map(m => m.id === id ? { ...m, ...updates } : m) })
   }
-
   const deleteMaterial = (id) => {
-    const next = {
+    persist({
       ...data,
       materials: data.materials.filter(m => m.id !== id),
       clients: data.clients.map(c => ({ ...c, materialIds: c.materialIds.filter(mid => mid !== id) }))
+    })
+  }
+
+  // ── Sessions ──────────────────────────────────────────────────────────
+  const addSession = (session) => {
+    const s = {
+      id: uuidv4(),
+      date: new Date().toISOString(),
+      duration: 0,
+      materialsUsed: [],
+      sessionNotes: '',
+      tokensEarned: 0,
+      homeworkNotes: '',
+      ...session,
     }
+    const next = { ...data, sessions: [...data.sessions, s] }
     persist(next)
+    return s
+  }
+  const updateSession = (id, updates) => {
+    persist({ ...data, sessions: data.sessions.map(s => s.id === id ? { ...s, ...updates } : s) })
+  }
+  const deleteSession = (id) => {
+    persist({ ...data, sessions: data.sessions.filter(s => s.id !== id) })
+  }
+
+  // ── Goals ─────────────────────────────────────────────────────────────
+  const addGoal = (clientId, goal) => {
+    const g = { id: uuidv4(), clientId, active: true, createdAt: new Date().toISOString(), progress: [], targetAccuracy: 80, ...goal }
+    persist({ ...data, goals: [...data.goals, g] })
+  }
+  const updateGoal = (id, updates) => {
+    persist({ ...data, goals: data.goals.map(g => g.id === id ? { ...g, ...updates } : g) })
+  }
+  const deleteGoal = (id) => {
+    persist({ ...data, goals: data.goals.filter(g => g.id !== id) })
+  }
+  const addGoalProgress = (goalId, entry) => {
+    persist({
+      ...data,
+      goals: data.goals.map(g =>
+        g.id === goalId
+          ? { ...g, progress: [...g.progress, { id: uuidv4(), date: new Date().toISOString(), ...entry }] }
+          : g
+      )
+    })
   }
 
   return {
     clients: data.clients,
     materials: data.materials,
+    sessions: data.sessions,
+    goals: data.goals,
     loaded,
-    addClient, updateClient, deleteClient,
-    assignMaterial, unassignMaterial,
+    addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
     addMaterial, updateMaterial, deleteMaterial,
+    addSession, updateSession, deleteSession,
+    addGoal, updateGoal, deleteGoal, addGoalProgress,
   }
 }
