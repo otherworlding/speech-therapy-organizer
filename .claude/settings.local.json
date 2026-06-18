@@ -18,7 +18,14 @@
       "mcp__visualize__read_me",
       "Bash(mkdir -p \"/Users/otherworlding/chromaboard/app/productions/[id]/breakdown\")",
       "Bash(npm create *)",
-      "Bash(mkdir -p \"/Users/otherworlding/Asset calulation app/speech-therapy-organizer/.claude\")"
+      "Bash(mkdir -p \"/Users/otherworlding/Asset calulation app/speech-therapy-organizer/.claude\")",
+      "Bash(ps -p 8790 -o command=)",
+      "Bash(node -e \"require\\('./electron/main.js'\\)\")",
+      "Bash(node --check electron/main.js)",
+      "Bash(node --check electron/preload.js)",
+      "Bash(npx vite *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
