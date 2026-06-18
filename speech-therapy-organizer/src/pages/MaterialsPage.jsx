@@ -1,6 +1,24 @@
 import React, { useState, useRef } from 'react'
+import JSZip from 'jszip'
 import MaterialCard from '../components/MaterialCard'
-import { isExternalFile } from '../utils/fileTypes'
+import { isExternalFile, getExt } from '../utils/fileTypes'
+
+// Inspect .pptx content: returns true if animations or action-hyperlinks found
+async function isPptxInteractive(filePath) {
+  try {
+    const data = await window.api.readFileBinary(filePath)
+    const zip = await JSZip.loadAsync(data)
+    const slideNames = Object.keys(zip.files).filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n))
+    for (const name of slideNames) {
+      const xml = await zip.files[name].async('text')
+      // p:tnLst = animation timeline nodes; hlinkClick = action/hyperlink buttons
+      if (xml.includes('<p:tnLst>') || xml.includes('hlinkClick')) return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
 
 const CATEGORIES = ['Language', 'Comprehension', 'Pragmatic', 'Age']
 const isElectron = typeof window !== 'undefined' && window.api
@@ -44,7 +62,11 @@ export default function MaterialsPage({ store }) {
   const importFile = async (filePath) => {
     const dest = await window.api.copyToLibrary(filePath)
     const title = filePath.split('/').pop().replace(/\.[^.]+$/, '')
-    const external = isExternalFile(filePath)
+    const ext = getExt(filePath)
+    let external = isExternalFile(filePath)
+    if (!external && ext === 'pptx') {
+      external = await isPptxInteractive(filePath)
+    }
     const mat = store.addMaterial({ title, filePath: dest, category: 'Language', tags: [], pending: true, openExternal: external })
     return mat.id
   }
