@@ -3,7 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const os = require('os')
 
-const isDev = process.env.NODE_ENV !== 'production'
+const isDev = !app.isPackaged
 const DATA_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'SpeechTherapyOrganizer')
 const DATA_FILE = path.join(DATA_DIR, 'data.json')
 

@@ -25,7 +25,8 @@
       "Bash(node --check electron/preload.js)",
       "Bash(npx vite *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npx electron-builder *)"
     ]
   }
 }
