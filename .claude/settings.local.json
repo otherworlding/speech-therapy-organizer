@@ -16,7 +16,9 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3333/)",
       "mcp__Claude_Preview__preview_start",
       "mcp__visualize__read_me",
-      "Bash(mkdir -p \"/Users/otherworlding/chromaboard/app/productions/[id]/breakdown\")"
+      "Bash(mkdir -p \"/Users/otherworlding/chromaboard/app/productions/[id]/breakdown\")",
+      "Bash(npm create *)",
+      "Bash(mkdir -p \"/Users/otherworlding/Asset calulation app/speech-therapy-organizer/.claude\")"
     ]
   }
 }

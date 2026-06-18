@@ -1,0 +1,41 @@
+{
+  "name": "speech-therapy-organizer",
+  "version": "1.0.0",
+  "description": "Speech therapy session materials organizer",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build && electron-builder",
+    "vite": "vite",
+    "electron": "electron ."
+  },
+  "build": {
+    "appId": "com.speechtherapy.organizer",
+    "productName": "Speech Therapy Organizer",
+    "mac": {
+      "category": "public.app-category.education",
+      "target": "dmg"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ]
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^10.0.3",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "vite": "^8.0.16",
+    "wait-on": "^9.0.10"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.0",
+    "uuid": "^14.0.0"
+  }
+}
