@@ -11460,3 +11460,9 @@ To github.com:otherworlding/FinancialVault.git
 To github.com:otherworlding/FinancialVault.git
    d3bbe80..3d7a4ac  main -> main
 2026-06-18 13:41 — pushed changes
+[main 99132ca] Auto-save: 2026-06-18 14:11
+ 6 files changed, 441 insertions(+), 14 deletions(-)
+ create mode 100644 speech-therapy-organizer/src/pages/SessionView.jsx
+To github.com:otherworlding/FinancialVault.git
+   3d7a4ac..99132ca  main -> main
+2026-06-18 14:11 — pushed changes
