@@ -358,3 +358,245 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .empty-msg { font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px; }
 
 .loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 18px; color: var(--text-muted); }
+
+/* Start session buttons */
+.client-card { flex-direction: column; gap: 0; padding: 0; overflow: hidden; }
+.client-card-main { display: flex; align-items: flex-start; gap: 14px; padding: 20px; cursor: pointer; width: 100%; }
+.client-card-main:hover { background: #f9fafc; }
+.btn-start-session {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: #f0f6ff;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background 0.15s;
+}
+.btn-start-session:hover { background: #ddeeff; }
+
+.client-header-actions { display: flex; gap: 10px; margin-left: auto; align-items: center; }
+.btn-start-session-large {
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-start-session-large:hover { background: #16a34a; }
+
+/* ── Session View ── */
+.session-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #0f1523;
+  color: white;
+  overflow: hidden;
+}
+
+.session-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: #1a2035;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+}
+
+.session-client-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  min-width: 0;
+}
+
+.session-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.session-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 auto;
+  -webkit-app-region: no-drag;
+}
+
+.session-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-app-region: no-drag;
+}
+.session-tab:hover { background: rgba(255,255,255,0.07); color: white; }
+.session-tab.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+.session-tab-count {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+.session-tab.active .session-tab-count { background: rgba(255,255,255,0.3); }
+
+.session-exit-btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.6);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-app-region: no-drag;
+  white-space: nowrap;
+}
+.session-exit-btn:hover { background: rgba(220,50,50,0.3); color: white; border-color: rgba(220,50,50,0.5); }
+
+.session-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+}
+
+/* Material tiles */
+.session-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 18px;
+}
+
+.session-tile {
+  background: #1e2840;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 28px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s, box-shadow 0.12s;
+  gap: 10px;
+}
+.session-tile:hover {
+  background: #263050;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+}
+
+.session-tile-icon { font-size: 48px; }
+.session-tile-title { font-size: 16px; font-weight: 700; color: white; line-height: 1.3; }
+.session-tile-meta { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.session-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  padding: 2px 9px;
+  border-radius: 10px;
+}
+.session-tag-age { background: #555; }
+
+.session-tile-open {
+  margin-top: 6px;
+  background: var(--primary);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 22px;
+  border-radius: 8px;
+  width: 100%;
+}
+.session-tile-no-file {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.35);
+}
+
+/* Library filters in session */
+.session-library-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.session-search {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: white;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 14px;
+  width: 220px;
+  outline: none;
+}
+.session-search::placeholder { color: rgba(255,255,255,0.35); }
+.session-search:focus { border-color: var(--primary); }
+
+.session-filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.session-filter-tab {
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.session-filter-tab:hover { background: rgba(255,255,255,0.07); color: white; }
+.session-filter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+/* Empty state in session */
+.session-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 80px 20px;
+  color: rgba(255,255,255,0.4);
+  font-size: 16px;
+  text-align: center;
+}
+.session-switch-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}

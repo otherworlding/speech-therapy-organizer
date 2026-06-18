@@ -3,7 +3,7 @@ import MaterialCard from '../components/MaterialCard'
 
 const CATEGORIES = ['Language', 'Comprehension', 'Pragmatic', 'Age']
 
-export default function ClientDetailPage({ store, clientId, onBack }) {
+export default function ClientDetailPage({ store, clientId, onBack, onStartSession }) {
   const client = store.clients.find(c => c.id === clientId)
   const [tab, setTab] = useState('All')
   const [showAssignModal, setShowAssignModal] = useState(false)
@@ -51,7 +51,10 @@ export default function ClientDetailPage({ store, clientId, onBack }) {
           <h1>{client.name}</h1>
           {age !== null && <div className="client-meta">Age {age} · {client.dob}</div>}
         </div>
-        <button className="btn-primary ml-auto" onClick={() => setShowAssignModal(true)}>+ Assign Material</button>
+        <div className="client-header-actions">
+          <button className="btn-start-session-large" onClick={() => onStartSession(clientId)}>▶ Start Session</button>
+          <button className="btn-primary" onClick={() => setShowAssignModal(true)}>+ Assign Material</button>
+        </div>
       </div>
 
       <div className="notes-section">

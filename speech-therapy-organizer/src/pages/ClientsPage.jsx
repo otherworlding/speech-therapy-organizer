@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-export default function ClientsPage({ store, onOpenClient }) {
+export default function ClientsPage({ store, onOpenClient, onStartSession }) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', dob: '', notes: '' })
 
@@ -53,16 +53,24 @@ export default function ClientsPage({ store, onOpenClient }) {
             const matCount = client.materialIds?.length || 0
             const age = client.dob ? getAge(client.dob) : null
             return (
-              <div key={client.id} className="client-card" onClick={() => onOpenClient(client.id)}>
-                <div className="client-avatar">{client.name[0].toUpperCase()}</div>
-                <div className="client-info">
-                  <div className="client-name">{client.name}</div>
-                  {age !== null && <div className="client-meta">Age {age}</div>}
-                  {client.notes && <div className="client-notes">{client.notes}</div>}
+              <div key={client.id} className="client-card">
+                <div className="client-card-main" onClick={() => onOpenClient(client.id)}>
+                  <div className="client-avatar">{client.name[0].toUpperCase()}</div>
+                  <div className="client-info">
+                    <div className="client-name">{client.name}</div>
+                    {age !== null && <div className="client-meta">Age {age}</div>}
+                    {client.notes && <div className="client-notes">{client.notes}</div>}
+                  </div>
+                  <div className="client-stats">
+                    <span>{matCount} material{matCount !== 1 ? 's' : ''}</span>
+                  </div>
                 </div>
-                <div className="client-stats">
-                  <span>{matCount} material{matCount !== 1 ? 's' : ''}</span>
-                </div>
+                <button
+                  className="btn-start-session"
+                  onClick={e => { e.stopPropagation(); onStartSession(client.id) }}
+                >
+                  ▶ Start Session
+                </button>
               </div>
             )
           })}
