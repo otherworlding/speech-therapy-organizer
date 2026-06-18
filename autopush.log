@@ -11471,3 +11471,20 @@ To github.com:otherworlding/FinancialVault.git
 To github.com:otherworlding/FinancialVault.git
    99132ca..0a3ef6b  main -> main
 2026-06-18 14:41 — pushed changes
+[main 0ac2b96] Auto-save: 2026-06-18 15:11
+ 24 files changed, 2243 insertions(+), 902 deletions(-)
+ create mode 100644 speech-therapy-organizer/src/components/FileViewer/ImageDeckViewer.jsx
+ create mode 100644 speech-therapy-organizer/src/components/FileViewer/PdfViewer.jsx
+ create mode 100644 speech-therapy-organizer/src/components/FileViewer/PptxViewer.jsx
+ create mode 100644 speech-therapy-organizer/src/components/FileViewer/index.jsx
+ create mode 100644 speech-therapy-organizer/src/components/SessionTools/ClinicianCues.jsx
+ create mode 100644 speech-therapy-organizer/src/components/SessionTools/SessionTimer.jsx
+ create mode 100644 speech-therapy-organizer/src/components/SessionTools/TokenBoard.jsx
+ create mode 100644 speech-therapy-organizer/src/components/SessionTools/TrialCounter.jsx
+ create mode 100644 speech-therapy-organizer/src/pages/GoalsPage.jsx
+ create mode 100644 speech-therapy-organizer/src/pages/ReportsPage.jsx
+ create mode 100644 speech-therapy-organizer/src/pages/SessionSetup.jsx
+ create mode 100644 speech-therapy-organizer/src/utils/pptxParser.js
+To github.com:otherworlding/FinancialVault.git
+   0a3ef6b..0ac2b96  main -> main
+2026-06-18 15:11 — pushed changes
