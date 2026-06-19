@@ -124,10 +124,7 @@ export default function MaterialsPage({ store }) {
       const id = await importFile(p)
       if (id) newIds.push(id)
     }
-    if (newIds.length) {
-      setPendingQueue(q => [...q, ...newIds])
-      setEditingPendingId(newIds[0])
-    }
+    if (newIds.length) setPendingQueue(q => [...q, ...newIds])
     setImporting(false)
   }
 
@@ -155,10 +152,7 @@ export default function MaterialsPage({ store }) {
       if (id) newIds.push(id)
     }
 
-    if (newIds.length) {
-      setPendingQueue(q => [...q, ...newIds])
-      setEditingPendingId(newIds[0])
-    }
+    if (newIds.length) setPendingQueue(q => [...q, ...newIds])
     setImporting(false)
   }
 

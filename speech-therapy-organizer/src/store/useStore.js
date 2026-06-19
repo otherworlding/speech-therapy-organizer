@@ -61,8 +61,13 @@ export function useStore() {
   // ── Materials ─────────────────────────────────────────────────────────
   const addMaterial = (material) => {
     const m = { id: uuidv4(), tags: [], ...material }
-    const next = { ...data, materials: [...data.materials, m] }
-    persist(next)
+    // Functional update so rapid sequential calls each see the latest state
+    setData(prev => {
+      const next = { ...prev, materials: [...prev.materials, m] }
+      if (isElectron) window.api.saveData(next)
+      else localSave(next)
+      return next
+    })
     return m
   }
   const updateMaterial = (id, updates) => {
