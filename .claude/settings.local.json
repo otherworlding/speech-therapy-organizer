@@ -48,7 +48,8 @@
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m pip install pyobjc-framework-ScreenCaptureKit)",
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c ' *)",
       "Bash(log show *)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; print\\('OK'\\)\")"
     ]
   }
 }
