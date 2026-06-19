@@ -31,7 +31,19 @@
       "Bash(git add *)",
       "Bash(brew install *)",
       "Bash(sw_vers)",
-      "Bash(grep -q '\\\\.local/bin' \"$HOME/.zshrc\" 2>/dev/null || echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> \"$HOME/.zshrc\" && echo \"PATH updated\")"
+      "Bash(grep -q '\\\\.local/bin' \"$HOME/.zshrc\" 2>/dev/null || echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> \"$HOME/.zshrc\" && echo \"PATH updated\")",
+      "Bash(mkdir -p /Users/otherworlding/cymatic-native/cymatic && ls /Users/otherworlding/cymatic-native/)",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m pip install pygame moderngl numpy sounddevice soundfile)",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m pip install \"pygame==2.6.1\")",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m pip install \"pygame\" --pre)",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m pip install \"pygame-ce\")",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m pip install sounddevice soundfile)",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m pip install moderngl)",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"import pygame; import moderngl; import sounddevice; import soundfile; import numpy; print\\('All imports OK'\\)\")",
+      "Bash(git init *)",
+      "Bash(git commit *)",
+      "Bash(git remote *)",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m cymatic)"
     ]
   }
 }
