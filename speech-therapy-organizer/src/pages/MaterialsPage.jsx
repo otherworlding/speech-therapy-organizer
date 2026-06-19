@@ -128,6 +128,20 @@ export default function MaterialsPage({ store }) {
     setImporting(false)
   }
 
+  // ── Picker: import image folders as decks ─────────────────────────────
+  const pickFolders = async () => {
+    if (!isElectron) return
+    setImporting(true)
+    const paths = await window.api.pickFolder()
+    const newIds = []
+    for (const p of paths) {
+      const id = await importFolder(p)
+      if (id) newIds.push(id)
+    }
+    if (newIds.length) setPendingQueue(q => [...q, ...newIds])
+    setImporting(false)
+  }
+
   // ── Drag & drop ───────────────────────────────────────────────────────
   const handleDragOver = (e) => { e.preventDefault(); setDragging(true) }
   const handleDragLeave = (e) => { if (!dropRef.current?.contains(e.relatedTarget)) setDragging(false) }
@@ -137,18 +151,18 @@ export default function MaterialsPage({ store }) {
     setDragging(false)
     if (!isElectron) return
 
-    const files = Array.from(e.dataTransfer.files)
-    if (!files.length) return
+    const items = Array.from(e.dataTransfer.items)
+    if (!items.length) return
 
     setImporting(true)
     const newIds = []
 
-    for (const file of files) {
-      const p = file.path
+    for (const item of items) {
+      const entry = item.webkitGetAsEntry?.()
+      const file = item.getAsFile()
+      const p = file?.path
       if (!p) continue
-      // Ask main process — reliable directory check
-      const isDir = await window.api.isDirectory(p)
-      const id = isDir ? await importFolder(p) : await importFile(p)
+      const id = entry?.isDirectory ? await importFolder(p) : await importFile(p)
       if (id) newIds.push(id)
     }
 
@@ -200,6 +214,9 @@ export default function MaterialsPage({ store }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn-secondary" onClick={pickManyFiles} disabled={importing}>
             {importing ? 'Importing…' : '📥 Import Files'}
+          </button>
+          <button className="btn-secondary" onClick={pickFolders} disabled={importing}>
+            🖼 Import Folder
           </button>
           <button className="btn-primary" onClick={() => setShowForm(true)}>+ Add Material</button>
         </div>

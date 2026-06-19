@@ -65,6 +65,14 @@ ipcMain.handle('file:pick', async () => {
 // Open in default OS app
 ipcMain.handle('file:open', async (_, filePath) => { await shell.openPath(filePath); return true })
 
+// Folder picker dialog
+ipcMain.handle('folder:pick', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'multiSelections'],
+  })
+  return result.canceled ? [] : result.filePaths
+})
+
 // Check if path is a directory
 ipcMain.handle('path:is-directory', (_, p) => {
   try { return fs.statSync(p).isDirectory() } catch { return false }
