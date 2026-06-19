@@ -12,6 +12,9 @@
   "build": {
     "appId": "com.speechtherapy.organizer",
     "productName": "Speech Therapy Organizer",
+    "directories": {
+      "output": "release"
+    },
     "mac": {
       "category": "public.app-category.education",
       "target": "dmg"
