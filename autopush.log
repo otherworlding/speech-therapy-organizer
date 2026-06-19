@@ -12578,3 +12578,13 @@ To https://github.com/otherworlding/speech-therapy-organizer.git
  ! [remote rejected] main -> main (pre-receive hook declined)
 error: failed to push some refs to 'https://github.com/otherworlding/speech-therapy-organizer.git'
 2026-06-19 08:45 — pushed changes
+[main 848f2ee] Auto-save: 2026-06-19 09:15
+ 1 file changed, 10 insertions(+)
+remote: error: Trace: bdc4e6f06f00dc3098177c01250168ade2737780dd519af1667bcc05c460d9f2        
+remote: error: See https://gh.io/lfs for more information.        
+remote: error: File dist/Financial Vault.dmg is 176.08 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.        
+To https://github.com/otherworlding/speech-therapy-organizer.git
+ ! [remote rejected] main -> main (pre-receive hook declined)
+error: failed to push some refs to 'https://github.com/otherworlding/speech-therapy-organizer.git'
+2026-06-19 09:15 — pushed changes
