@@ -53,7 +53,8 @@
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; print\\('imports OK'\\)\")",
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m py_compile cymatic/app.py cymatic/renderer.py cymatic/shaders.py cymatic/config.py cymatic/audio.py)",
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m py_compile cymatic/*.py)",
-      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; from cymatic.renderer import Renderer; print\\('final import OK'\\)\")"
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; from cymatic.renderer import Renderer; print\\('final import OK'\\)\")",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; print\\('final import OK'\\)\")"
     ]
   }
 }
