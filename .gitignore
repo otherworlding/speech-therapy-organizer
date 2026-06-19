@@ -1,0 +1,21 @@
+# Build output & installers
+dist/
+*.dmg
+*.exe
+*.AppImage
+*.deb
+*.rpm
+
+# Dependencies
+node_modules/
+
+# Electron builder cache
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
