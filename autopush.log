@@ -12653,3 +12653,10 @@ To https://github.com/otherworlding/speech-therapy-organizer.git
 To https://github.com/otherworlding/speech-therapy-organizer.git
    884f90d..58acf3d  main -> main
 2026-06-19 15:17 — pushed changes
+[main 209a707] Auto-save: 2026-06-20 01:19
+ 11 files changed, 404 insertions(+), 35 deletions(-)
+ create mode 100644 speech-therapy-organizer/src/components/FileViewer/FolderViewer.jsx
+ create mode 100644 speech-therapy-organizer/src/components/FileViewer/HtmlGameViewer.jsx
+To https://github.com/otherworlding/speech-therapy-organizer.git
+   58acf3d..209a707  main -> main
+2026-06-20 01:19 — pushed changes
