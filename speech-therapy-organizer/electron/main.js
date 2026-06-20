@@ -1,7 +1,26 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
+const { execFile } = require('child_process')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
+
+function copyDirSync(src, dest) {
+  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, entry.name)
+    const d = path.join(dest, entry.name)
+    entry.isDirectory() ? copyDirSync(s, d) : fs.copyFileSync(s, d)
+  }
+}
+
+function findLibreOffice() {
+  const candidates = [
+    '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+    '/usr/local/bin/soffice',
+    '/usr/bin/soffice',
+  ]
+  return candidates.find(p => fs.existsSync(p)) || null
+}
 
 const isDev = !app.isPackaged
 const DATA_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'SpeechTherapyOrganizer')
@@ -33,6 +52,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, nodeIntegration: false,
+      webviewTag: true,
     },
   })
   if (isDev) win.loadURL('http://localhost:5173')
@@ -96,17 +116,34 @@ ipcMain.handle('file:read-binary', (_, filePath) => {
 // Check file exists
 ipcMain.handle('file:exists', (_, filePath) => fs.existsSync(filePath))
 
-// Scan folder for images and copy to library as an image deck
+// Import ALL files in a folder as a grouped folder material
+ipcMain.handle('folder:import-all', async (_, srcFolder) => {
+  const libDir = path.join(DATA_DIR, 'files')
+  const folderName = path.basename(srcFolder)
+  const destFolder = path.join(libDir, folderName + '_' + Date.now())
+  if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, { recursive: true })
+
+  const files = fs.readdirSync(srcFolder)
+    .filter(f => fs.statSync(path.join(srcFolder, f)).isFile())
+    .sort()
+
+  const items = []
+  for (const file of files) {
+    const src = path.join(srcFolder, file)
+    const dest = path.join(destFolder, file)
+    fs.copyFileSync(src, dest)
+    items.push({ filename: file, filePath: dest })
+  }
+  return { name: folderName, items }
+})
+
+// Legacy: image-deck (kept for backward compat)
 ipcMain.handle('folder:import-deck', async (_, srcFolder) => {
   const libDir = path.join(DATA_DIR, 'files')
   const folderName = path.basename(srcFolder)
   const destFolder = path.join(libDir, folderName + '_deck')
   if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, { recursive: true })
-
-  const files = fs.readdirSync(srcFolder)
-    .filter(f => IMAGE_EXTS.test(f))
-    .sort()
-
+  const files = fs.readdirSync(srcFolder).filter(f => IMAGE_EXTS.test(f)).sort()
   const imagePaths = []
   for (const file of files) {
     const src = path.join(srcFolder, file)
@@ -115,6 +152,54 @@ ipcMain.handle('folder:import-deck', async (_, srcFolder) => {
     imagePaths.push(dest)
   }
   return { name: folderName, imagePaths, folderPath: destFolder }
+})
+
+// Detect which presentation apps are installed
+ipcMain.handle('app:check-apps', () => ({
+  keynote:     fs.existsSync('/Applications/Keynote.app'),
+  powerpoint:  fs.existsSync('/Applications/Microsoft PowerPoint.app'),
+  libreoffice: fs.existsSync('/Applications/LibreOffice.app'),
+}))
+
+// Open a file with a specific app by name (macOS `open -a`)
+ipcMain.handle('file:open-with', async (_, { filePath, appName }) => {
+  return new Promise(resolve => {
+    execFile('open', ['-a', appName, filePath], err => resolve(!err))
+  })
+})
+
+// Check if LibreOffice is installed
+ipcMain.handle('app:has-libreoffice', () => !!findLibreOffice())
+
+// Check if a folder contains index.html (fast, no copy)
+ipcMain.handle('html:has-index', (_, folderPath) => {
+  return fs.existsSync(path.join(folderPath, 'index.html'))
+})
+
+// Import HTML game folder — recursive copy, returns indexPath
+ipcMain.handle('html:import-folder', async (_, srcFolder) => {
+  const folderName = path.basename(srcFolder)
+  const destFolder = path.join(DATA_DIR, 'files', folderName + '_html_' + Date.now())
+  copyDirSync(srcFolder, destFolder)
+  const indexPath = path.join(destFolder, 'index.html')
+  if (!fs.existsSync(indexPath)) return { success: false, error: 'No index.html found' }
+  return { success: true, name: folderName, indexPath }
+})
+
+// Convert PPTX → PDF via LibreOffice (headless)
+ipcMain.handle('pptx:convert-pdf', async (_, pptxPath) => {
+  const soffice = findLibreOffice()
+  if (!soffice) return { success: false, error: 'LibreOffice not installed' }
+  const outDir = path.join(DATA_DIR, 'files')
+  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true })
+  return new Promise(resolve => {
+    execFile(soffice, ['--headless', '--convert-to', 'pdf', '--outdir', outDir, pptxPath], err => {
+      if (err) return resolve({ success: false, error: err.message })
+      const base = path.basename(pptxPath, path.extname(pptxPath))
+      const pdfPath = path.join(outDir, base + '.pdf')
+      resolve({ success: fs.existsSync(pdfPath), pdfPath })
+    })
+  })
 })
 
 // Export session report as text file

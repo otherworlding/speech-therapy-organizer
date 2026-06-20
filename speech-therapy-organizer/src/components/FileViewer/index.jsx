@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import PdfViewer from './PdfViewer'
 import PptxViewer from './PptxViewer'
 import ImageDeckViewer from './ImageDeckViewer'
+import FolderViewer from './FolderViewer'
+import HtmlGameViewer from './HtmlGameViewer'
 import { externalLabel } from '../../utils/fileTypes'
 
 const IMG_EXT = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i
@@ -9,6 +11,8 @@ const VIDEO_EXT = /\.(mp4|mov|avi|webm)$/i
 const AUDIO_EXT = /\.(mp3|wav|m4a|ogg)$/i
 
 function getType(material) {
+  if (material.type === 'html-game') return 'html-game'
+  if (material.type === 'folder') return 'folder'
   if (material.type === 'image-deck') return 'deck'
   const p = material.filePath || ''
   if (!p) return 'none'
@@ -23,10 +27,14 @@ function getType(material) {
 
 export default function FileViewer({ material, isFullscreen, onToggleFullscreen }) {
   const [pageInfo, setPageInfo] = useState(null)
+  const [apps, setApps] = useState({ keynote: false, powerpoint: false, libreoffice: false })
   const videoRef = useRef(null)
   const type = material ? getType(material) : 'none'
 
   useEffect(() => { setPageInfo(null) }, [material?.id])
+  useEffect(() => {
+    window.api?.checkApps?.().then(a => a && setApps(a))
+  }, [])
 
   if (!material) return (
     <div className="viewer-empty">
@@ -47,15 +55,39 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen 
         </button>
       </div>
 
-      <div className="viewer-body">
-        {material.openExternal && (
+      <div className={`viewer-body ${type === 'folder' || type === 'html-game' ? 'viewer-body-folder' : ''}`}>
+        {type === 'html-game' && <HtmlGameViewer material={material} />}
+        {type === 'folder' && <FolderViewer material={material} onPageInfo={handlePageInfo} />}
+        {material.openExternal && type !== 'folder' && (
           <div className="viewer-external">
             <div className="viewer-external-icon">↗</div>
             <div className="viewer-external-label">{externalLabel(material.filePath)}</div>
-            <p className="viewer-external-hint">This file opens in an external app.</p>
-            <button className="btn-primary" onClick={() => window.api?.openFile(material.filePath)}>
-              Open in {externalLabel(material.filePath)}
-            </button>
+            <p className="viewer-external-hint">Choose how to open this file:</p>
+            <div className="viewer-external-btns">
+              {apps.keynote && (
+                <button className="btn-primary" onClick={() => window.api?.openWith(material.filePath, 'Keynote')}>
+                  Open in Keynote
+                </button>
+              )}
+              {apps.powerpoint && (
+                <button className="btn-primary" onClick={() => window.api?.openWith(material.filePath, 'Microsoft PowerPoint')}>
+                  Open in PowerPoint
+                </button>
+              )}
+              {apps.libreoffice && (
+                <button className="btn-primary" onClick={() => window.api?.openWith(material.filePath, 'LibreOffice')}>
+                  Open in LibreOffice
+                </button>
+              )}
+              {!apps.keynote && !apps.powerpoint && !apps.libreoffice && (
+                <button className="btn-primary" onClick={() => window.api?.openFile(material.filePath)}>
+                  Open in Default App
+                </button>
+              )}
+              <button className="btn-secondary viewer-external-default" onClick={() => window.api?.openFile(material.filePath)}>
+                Other app…
+              </button>
+            </div>
           </div>
         )}
         {!material.openExternal && type === 'pdf' && <PdfViewer filePath={material.filePath} onPageInfo={handlePageInfo} />}

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import JSZip from 'jszip'
 import MaterialCard from '../components/MaterialCard'
 import { isExternalFile, getExt } from '../utils/fileTypes'
@@ -83,7 +83,12 @@ export default function MaterialsPage({ store }) {
   const [pendingQueue, setPendingQueue] = useState([])
   const [editingPendingId, setEditingPendingId] = useState(null)
   const [importing, setImporting] = useState(false)
+  const [hasLibreOffice, setHasLibreOffice] = useState(false)
   const dropRef = useRef(null)
+
+  useEffect(() => {
+    if (isElectron) window.api.hasLibreOffice().then(setHasLibreOffice)
+  }, [])
 
   // ── Import helpers ────────────────────────────────────────────────────
   const importFile = async (filePath) => {
@@ -99,10 +104,29 @@ export default function MaterialsPage({ store }) {
   }
 
   const importFolder = async (folderPath) => {
-    const result = await window.api.importFolderDeck(folderPath)
-    if (!result.imagePaths.length) return null
-    const mat = store.addMaterial({ title: result.name, type: 'image-deck', imagePaths: result.imagePaths, category: 'Language', tags: [], pending: true })
+    // If the folder has index.html treat it as an HTML game
+    const isHtml = await window.api.htmlHasIndex(folderPath)
+    if (isHtml) {
+      const result = await window.api.importHtmlFolder(folderPath)
+      if (result.success) {
+        const mat = store.addMaterial({ title: result.name, type: 'html-game', indexPath: result.indexPath, category: 'Language', tags: [], pending: true })
+        return mat.id
+      }
+    }
+    // Otherwise generic folder group
+    const result = await window.api.importFolderAll(folderPath)
+    if (!result.items.length) return null
+    const mat = store.addMaterial({ title: result.name, type: 'folder', items: result.items, category: 'Language', tags: [], pending: true })
     return mat.id
+  }
+
+  const convertPptxToPdf = async (materialId, filePath) => {
+    const result = await window.api.convertPptxToPdf(filePath)
+    if (result.success) {
+      store.updateMaterial(materialId, { filePath: result.pdfPath, openExternal: false })
+    } else {
+      alert('Conversion failed: ' + result.error)
+    }
   }
 
   // ── Picker: attach single file to the manual-add form ────────────────
@@ -151,18 +175,18 @@ export default function MaterialsPage({ store }) {
     setDragging(false)
     if (!isElectron) return
 
-    const items = Array.from(e.dataTransfer.items)
-    if (!items.length) return
+    // Extract all paths SYNCHRONOUSLY before any await — DataTransfer is cleared after first await
+    const dropped = Array.from(e.dataTransfer.items).map(item => ({
+      isDir: item.webkitGetAsEntry?.()?.isDirectory ?? false,
+      path: item.getAsFile()?.path ?? null,
+    })).filter(d => d.path)
 
+    if (!dropped.length) return
     setImporting(true)
     const newIds = []
 
-    for (const item of items) {
-      const entry = item.webkitGetAsEntry?.()
-      const file = item.getAsFile()
-      const p = file?.path
-      if (!p) continue
-      const id = entry?.isDirectory ? await importFolder(p) : await importFile(p)
+    for (const { isDir, path } of dropped) {
+      const id = isDir ? await importFolder(path) : await importFile(path)
       if (id) newIds.push(id)
     }
 
@@ -232,7 +256,7 @@ export default function MaterialsPage({ store }) {
       >
         <span className="drop-icon">{importing ? '⏳' : '📥'}</span>
         <span>{importing ? 'Importing…' : 'Drop files or folders here'}</span>
-        <span className="drop-sub">PDFs · PPTX · images · video · audio · image folders</span>
+        <span className="drop-sub">PDFs · PPTX · images · video · audio · folders (imported as groups)</span>
       </div>
 
       {/* Pending queue */}
@@ -246,7 +270,7 @@ export default function MaterialsPage({ store }) {
             {pendingMaterials.map(m => (
               <div key={m.id} className="pending-item" onClick={() => setEditingPendingId(m.id)}>
                 <span className="pending-name">{m.title}</span>
-                <span className="pending-type">{m.type === 'image-deck' ? '🖼 image deck' : (m.filePath || '').split('.').pop()}</span>
+                <span className="pending-type">{m.type === 'html-game' ? '🎮 HTML game' : m.type === 'folder' ? `📁 ${m.items?.length ?? 0} files` : m.type === 'image-deck' ? '🖼 image deck' : (m.filePath || '').split('.').pop()}</span>
                 <span className="tag" style={{ background: '#f7a84f' }}>needs tags</span>
               </div>
             ))}
@@ -292,7 +316,9 @@ export default function MaterialsPage({ store }) {
         <div className="materials-list">
           {filtered.map(m => (
             <MaterialCard key={m.id} material={m} onOpen={openMaterial} onDelete={store.deleteMaterial}
-            onToggleExternal={(id, val) => store.updateMaterial(id, { openExternal: val })} />
+              onToggleExternal={(id, val) => store.updateMaterial(id, { openExternal: val })}
+              hasLibreOffice={hasLibreOffice}
+              onConvertPptx={(id, fp) => convertPptxToPdf(id, fp)} />
           ))}
         </div>
       )}
