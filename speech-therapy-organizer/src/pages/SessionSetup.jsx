@@ -1,5 +1,8 @@
 import React, { useState } from 'react'
 
+// 15–30 in 5s, then every 5 minutes up to 90
+const DURATIONS = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
+
 export default function SessionSetup({ client, onStart, onCancel }) {
   const [tools, setTools] = useState({
     timer: true, timerMins: 45,
@@ -34,9 +37,24 @@ export default function SessionSetup({ client, onStart, onCancel }) {
             {tools.timer && (
               <div className="tool-option">
                 <label>Duration</label>
-                <select value={tools.timerMins} onChange={e => set('timerMins', parseInt(e.target.value))}>
-                  {[15,20,25,30,45,60].map(m => <option key={m} value={m}>{m} min</option>)}
+                <select
+                  value={DURATIONS.includes(tools.timerMins) ? tools.timerMins : 'custom'}
+                  onChange={e => {
+                    if (e.target.value === 'custom') set('timerCustom', true)
+                    else { set('timerCustom', false); set('timerMins', parseInt(e.target.value)) }
+                  }}
+                >
+                  {DURATIONS.map(m => <option key={m} value={m}>{m} min</option>)}
+                  <option value="custom">Custom…</option>
                 </select>
+                {(tools.timerCustom || !DURATIONS.includes(tools.timerMins)) && (
+                  <input
+                    type="number" min="1" max="240" className="custom-mins-input"
+                    value={tools.timerMins}
+                    onChange={e => set('timerMins', Math.max(1, parseInt(e.target.value) || 1))}
+                    placeholder="minutes"
+                  />
+                )}
               </div>
             )}
           </ToolRow>

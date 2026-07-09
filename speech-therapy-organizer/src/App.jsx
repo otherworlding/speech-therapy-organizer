@@ -7,6 +7,7 @@ import ClientDetailPage from './pages/ClientDetailPage'
 import SessionSetup from './pages/SessionSetup'
 import SessionView from './pages/SessionView'
 import ReportsPage from './pages/ReportsPage'
+import CalendarPage from './pages/CalendarPage'
 
 export default function App() {
   const store = useStore()
@@ -49,6 +50,7 @@ export default function App() {
           <ClientDetailPage store={store} clientId={selectedClientId} onBack={goBack} onStartSession={requestSession} />
         )}
         {view === 'reports' && <ReportsPage store={store} />}
+        {view === 'calendar' && <CalendarPage store={store} />}
       </main>
       </div>
 

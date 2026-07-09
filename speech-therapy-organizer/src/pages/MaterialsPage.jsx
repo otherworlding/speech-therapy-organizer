@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import JSZip from 'jszip'
 import MaterialCard from '../components/MaterialCard'
+import MaterialsBrowser from '../components/MaterialsBrowser'
 import { isExternalFile, getExt } from '../utils/fileTypes'
 
 // Inspect .pptx content: returns true if animations or action-hyperlinks found
@@ -84,6 +85,7 @@ export default function MaterialsPage({ store }) {
   const [editingPendingId, setEditingPendingId] = useState(null)
   const [importing, setImporting] = useState(false)
   const [hasLibreOffice, setHasLibreOffice] = useState(false)
+  const [browseMode, setBrowseMode] = useState(false)
   const dropRef = useRef(null)
 
   useEffect(() => {
@@ -175,11 +177,15 @@ export default function MaterialsPage({ store }) {
     setDragging(false)
     if (!isElectron) return
 
-    // Extract all paths SYNCHRONOUSLY before any await — DataTransfer is cleared after first await
-    const dropped = Array.from(e.dataTransfer.items).map(item => ({
-      isDir: item.webkitGetAsEntry?.()?.isDirectory ?? false,
-      path: item.getAsFile()?.path ?? null,
-    })).filter(d => d.path)
+    // Extract all paths SYNCHRONOUSLY before any await — DataTransfer is cleared after first await.
+    // Electron 32 removed File.path, so we resolve paths through webUtils in the preload.
+    const dropped = Array.from(e.dataTransfer.items).map(item => {
+      const entry = item.webkitGetAsEntry?.()
+      const file = item.getAsFile()
+      let path = null
+      try { path = file ? window.api.getFilePath(file) : null } catch { path = null }
+      return { isDir: entry?.isDirectory ?? false, path }
+    }).filter(d => d.path)
 
     if (!dropped.length) return
     setImporting(true)
@@ -236,6 +242,9 @@ export default function MaterialsPage({ store }) {
       <div className="page-header">
         <h1>Materials Library</h1>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button className={`btn-secondary view-toggle ${browseMode ? 'active' : ''}`} onClick={() => setBrowseMode(b => !b)}>
+            {browseMode ? '▤ List' : '▦ Browse'}
+          </button>
           <button className="btn-secondary" onClick={pickManyFiles} disabled={importing}>
             {importing ? 'Importing…' : '📥 Import Files'}
           </button>
@@ -278,6 +287,9 @@ export default function MaterialsPage({ store }) {
         </div>
       )}
 
+      {browseMode && <MaterialsBrowser store={store} />}
+
+      {!browseMode && (
       <div className="filter-bar">
         <input className="search-input" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
         <div className="filter-tabs">
@@ -286,6 +298,7 @@ export default function MaterialsPage({ store }) {
           ))}
         </div>
       </div>
+      )}
 
       {/* Manual add form */}
       {showForm && (
@@ -307,7 +320,7 @@ export default function MaterialsPage({ store }) {
         />
       )}
 
-      {filtered.length === 0 && pendingMaterials.length === 0 ? (
+      {!browseMode && (filtered.length === 0 && pendingMaterials.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📁</div>
           <p>{store.materials.length === 0 ? 'No materials yet. Drop files above or click Import Files.' : 'No materials match this filter.'}</p>
@@ -321,7 +334,7 @@ export default function MaterialsPage({ store }) {
               onConvertPptx={(id, fp) => convertPptxToPdf(id, fp)} />
           ))}
         </div>
-      )}
+      ))}
     </div>
   )
 }

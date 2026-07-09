@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 const isElectron = typeof window !== 'undefined' && window.api
-const EMPTY = { clients: [], materials: [], sessions: [], goals: [] }
+const EMPTY = { clients: [], materials: [], sessions: [], goals: [], appointments: [] }
 
 function localLoad() {
   try { return { ...EMPTY, ...JSON.parse(localStorage.getItem('sto_data')) } }
@@ -38,7 +38,13 @@ export function useStore() {
     persist({ ...data, clients: data.clients.map(c => c.id === id ? { ...c, ...updates } : c) })
   }
   const deleteClient = (id) => {
-    persist({ ...data, clients: data.clients.filter(c => c.id !== id) })
+    persist({
+      ...data,
+      clients: data.clients.filter(c => c.id !== id),
+      sessions: data.sessions.filter(s => s.clientId !== id),
+      goals: data.goals.filter(g => g.clientId !== id),
+      appointments: (data.appointments || []).filter(a => a.clientId !== id),
+    })
   }
   const assignMaterial = (clientId, materialId) => {
     persist({
@@ -126,15 +132,30 @@ export function useStore() {
     })
   }
 
+  // ── Appointments ──────────────────────────────────────────────────────
+  const addAppointment = (appt) => {
+    const a = { id: uuidv4(), durationMins: 45, notes: '', ...appt }
+    persist({ ...data, appointments: [...(data.appointments || []), a] })
+    return a
+  }
+  const updateAppointment = (id, updates) => {
+    persist({ ...data, appointments: (data.appointments || []).map(a => a.id === id ? { ...a, ...updates } : a) })
+  }
+  const deleteAppointment = (id) => {
+    persist({ ...data, appointments: (data.appointments || []).filter(a => a.id !== id) })
+  }
+
   return {
     clients: data.clients,
     materials: data.materials,
     sessions: data.sessions,
     goals: data.goals,
+    appointments: data.appointments || [],
     loaded,
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
     addMaterial, updateMaterial, deleteMaterial,
     addSession, updateSession, deleteSession,
     addGoal, updateGoal, deleteGoal, addGoalProgress,
+    addAppointment, updateAppointment, deleteAppointment,
   }
 }

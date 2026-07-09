@@ -1,6 +1,8 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
+  // Electron 32 removed File.path — this is the supported way to get a dropped file's path
+  getFilePath: (file) => webUtils.getPathForFile(file),
   loadData: () => ipcRenderer.invoke('data:load'),
   saveData: (data) => ipcRenderer.invoke('data:save', data),
   pickFiles: () => ipcRenderer.invoke('file:pick'),

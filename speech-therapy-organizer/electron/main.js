@@ -31,13 +31,15 @@ function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
 }
 
+const EMPTY_DATA = { clients: [], materials: [], sessions: [], goals: [], appointments: [] }
+
 function loadData() {
   ensureDataDir()
-  if (!fs.existsSync(DATA_FILE)) return { clients: [], materials: [], sessions: [], goals: [] }
+  if (!fs.existsSync(DATA_FILE)) return { ...EMPTY_DATA }
   try {
     const d = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
-    return { clients: [], materials: [], sessions: [], goals: [], ...d }
-  } catch { return { clients: [], materials: [], sessions: [], goals: [] } }
+    return { ...EMPTY_DATA, ...d }
+  } catch { return { ...EMPTY_DATA } }
 }
 
 function saveData(data) {
