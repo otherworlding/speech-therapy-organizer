@@ -31,7 +31,7 @@ function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
 }
 
-const EMPTY_DATA = { clients: [], materials: [], sessions: [], goals: [], appointments: [] }
+const EMPTY_DATA = { clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {} }
 
 function loadData() {
   ensureDataDir()
@@ -204,17 +204,26 @@ ipcMain.handle('pptx:convert-pdf', async (_, pptxPath) => {
   })
 })
 
-// Export session report as text file
+// Export text or calendar file (filter picked by extension)
 ipcMain.handle('report:export', async (_, { filename, content }) => {
+  const isIcs = filename.toLowerCase().endsWith('.ics')
   const result = await dialog.showSaveDialog({
     defaultPath: path.join(os.homedir(), 'Desktop', filename),
-    filters: [{ name: 'Text', extensions: ['txt'] }],
+    filters: isIcs
+      ? [{ name: 'Calendar Invite', extensions: ['ics'] }]
+      : [{ name: 'Text', extensions: ['txt'] }],
   })
   if (!result.canceled && result.filePath) {
     fs.writeFileSync(result.filePath, content, 'utf8')
     return true
   }
   return false
+})
+
+// Open a URL in the default handler (browser, Mail via mailto:)
+ipcMain.handle('shell:open-external', (_, url) => {
+  if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url)
+  return true
 })
 
 // Copy text to clipboard via shell

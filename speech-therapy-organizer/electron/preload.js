@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   isDirectory: (p) => ipcRenderer.invoke('path:is-directory', p),
   exportReport: (filename, content) => ipcRenderer.invoke('report:export', { filename, content }),
   copyToClipboard: (text) => ipcRenderer.invoke('clipboard:write', text),
+  openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
   checkApps: () => ipcRenderer.invoke('app:check-apps'),
   openWith: (filePath, appName) => ipcRenderer.invoke('file:open-with', { filePath, appName }),
   hasLibreOffice: () => ipcRenderer.invoke('app:has-libreoffice'),

@@ -6,12 +6,20 @@ function dur(secs) {
   return `${Math.floor(secs/60)}m ${secs%60}s`
 }
 
+const TIMEZONES = (() => {
+  try { return Intl.supportedValuesOf('timeZone') } catch { return ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Europe/London', 'Asia/Manila', 'Asia/Tokyo', 'Australia/Sydney'] }
+})()
+const MY_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone
+
 function ClientForm({ initial, title, submitLabel, onSubmit, onCancel }) {
-  const [form, setForm] = useState({ name: initial?.name || '', dob: initial?.dob || '', notes: initial?.notes || '' })
+  const [form, setForm] = useState({
+    name: initial?.name || '', dob: initial?.dob || '', notes: initial?.notes || '',
+    email: initial?.email || '', timezone: initial?.timezone || MY_TZ,
+  })
   const submit = (e) => {
     e.preventDefault()
     if (!form.name.trim()) return
-    onSubmit({ name: form.name.trim(), dob: form.dob, notes: form.notes })
+    onSubmit({ name: form.name.trim(), dob: form.dob, notes: form.notes, email: form.email.trim(), timezone: form.timezone })
   }
   return (
     <div className="modal-backdrop" onClick={onCancel}>
@@ -23,6 +31,14 @@ function ClientForm({ initial, title, submitLabel, onSubmit, onCancel }) {
           </label>
           <label>Date of Birth
             <input type="date" value={form.dob} onChange={e => setForm(f => ({ ...f, dob: e.target.value }))} />
+          </label>
+          <label>Parent Email (for invitations)
+            <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="parent@example.com" />
+          </label>
+          <label>Time Zone
+            <select value={form.timezone} onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))}>
+              {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>)}
+            </select>
           </label>
           <label>Notes
             <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Diagnosis, goals, etc." />
@@ -94,7 +110,7 @@ export default function ClientsPage({ store, onOpenClient, onStartSession }) {
       {showForm && (
         <ClientForm
           title="Add Client" submitLabel="Add Client"
-          onSubmit={(f) => { store.addClient(f.name, f.dob, f.notes); setShowForm(false) }}
+          onSubmit={(f) => { store.addClient(f); setShowForm(false) }}
           onCancel={() => setShowForm(false)}
         />
       )}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 const isElectron = typeof window !== 'undefined' && window.api
-const EMPTY = { clients: [], materials: [], sessions: [], goals: [], appointments: [] }
+const EMPTY = { clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {} }
 
 function localLoad() {
   try { return { ...EMPTY, ...JSON.parse(localStorage.getItem('sto_data')) } }
@@ -30,8 +30,8 @@ export function useStore() {
   }, [])
 
   // ── Clients ──────────────────────────────────────────────────────────
-  const addClient = (name, dob, notes) => {
-    const next = { ...data, clients: [...data.clients, { id: uuidv4(), name, dob, notes, materialIds: [] }] }
+  const addClient = (fields) => {
+    const next = { ...data, clients: [...data.clients, { id: uuidv4(), materialIds: [], ...fields }] }
     persist(next)
   }
   const updateClient = (id, updates) => {
@@ -132,6 +132,11 @@ export function useStore() {
     })
   }
 
+  // ── Settings ──────────────────────────────────────────────────────────
+  const updateSettings = (updates) => {
+    persist({ ...data, settings: { ...(data.settings || {}), ...updates } })
+  }
+
   // ── Appointments ──────────────────────────────────────────────────────
   const addAppointment = (appt) => {
     const a = { id: uuidv4(), durationMins: 45, notes: '', ...appt }
@@ -151,11 +156,13 @@ export function useStore() {
     sessions: data.sessions,
     goals: data.goals,
     appointments: data.appointments || [],
+    settings: data.settings || {},
     loaded,
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
     addMaterial, updateMaterial, deleteMaterial,
     addSession, updateSession, deleteSession,
     addGoal, updateGoal, deleteGoal, addGoalProgress,
     addAppointment, updateAppointment, deleteAppointment,
+    updateSettings,
   }
 }
