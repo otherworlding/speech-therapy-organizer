@@ -85,7 +85,7 @@ export default function MaterialsPage({ store }) {
   const [editingPendingId, setEditingPendingId] = useState(null)
   const [importing, setImporting] = useState(false)
   const [hasLibreOffice, setHasLibreOffice] = useState(false)
-  const [browseMode, setBrowseMode] = useState(false)
+  const [browseMode, setBrowseMode] = useState(true)  // Browse is the default, friendlier view
   const dropRef = useRef(null)
 
   useEffect(() => {
@@ -240,11 +240,15 @@ export default function MaterialsPage({ store }) {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Materials Library</h1>
+        <div className="page-title-group">
+          <h1>Materials Library</h1>
+          {/* Prominent segmented view switch */}
+          <div className="view-segment" role="tablist" aria-label="View mode">
+            <button className={`view-segment-btn ${browseMode ? 'active' : ''}`} onClick={() => setBrowseMode(true)}>▦ Browse</button>
+            <button className={`view-segment-btn ${!browseMode ? 'active' : ''}`} onClick={() => setBrowseMode(false)}>☰ List</button>
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className={`btn-secondary view-toggle ${browseMode ? 'active' : ''}`} onClick={() => setBrowseMode(b => !b)}>
-            {browseMode ? '▤ List' : '▦ Browse'}
-          </button>
           <button className="btn-secondary" onClick={pickManyFiles} disabled={importing}>
             {importing ? 'Importing…' : '📥 Import Files'}
           </button>
@@ -255,17 +259,16 @@ export default function MaterialsPage({ store }) {
         </div>
       </div>
 
-      {/* Drop zone */}
+      {/* Compact drop strip — always available, but not dominating the page */}
       <div
         ref={dropRef}
-        className={`drop-zone ${dragging ? 'drag-over' : ''} ${importing ? 'drop-importing' : ''}`}
+        className={`drop-zone drop-zone-compact ${dragging ? 'drag-over' : ''} ${importing ? 'drop-importing' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         <span className="drop-icon">{importing ? '⏳' : '📥'}</span>
-        <span>{importing ? 'Importing…' : 'Drop files or folders here'}</span>
-        <span className="drop-sub">PDFs · PPTX · images · video · audio · folders (imported as groups)</span>
+        <span>{importing ? 'Importing…' : 'Drop files or folders here to import'}</span>
       </div>
 
       {/* Pending queue */}

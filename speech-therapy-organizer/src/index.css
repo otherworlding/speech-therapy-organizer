@@ -167,6 +167,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .appt-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
 .appt-when { font-size: 13px; color: var(--text-muted); margin: 4px 0 14px; }
 
+/* Personal / unavailable time blocks — greyed with diagonal stripes */
+.cal-block {
+  position: absolute; left: 3px; right: 3px; border-radius: 6px; cursor: pointer;
+  padding: 2px 6px; overflow: hidden; color: #4b5563;
+  background-color: #d5d8e0;
+  background-image: repeating-linear-gradient(45deg, rgba(120,128,145,0.35) 0, rgba(120,128,145,0.35) 5px, transparent 5px, transparent 10px);
+  border: 1px solid #b9bdc9;
+  transition: filter 0.1s;
+}
+.cal-block:hover { filter: brightness(0.96); }
+.cal-block-label { font-size: 10px; font-weight: 700; color: #4b5563; white-space: nowrap; }
+
+/* Slot-choice chooser */
+.modal-slim { max-width: 360px; }
+.slot-choice-row { display: flex; gap: 12px; margin: 8px 0 4px; }
+.slot-choice-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 10px; border: 2px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+.slot-choice-btn:hover { border-color: var(--primary); background: #eef4ff; }
+.slot-choice-icon { font-size: 30px; }
+.slot-choice-label { font-size: 14px; font-weight: 700; }
+.slot-choice-sub { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+/* Block preset chips */
+.block-preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.block-preset { border: 1px solid var(--border); background: var(--surface); border-radius: 14px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--text-muted); }
+.block-preset.active { border-color: #64748b; background: #e2e5ef; color: var(--text); font-weight: 600; }
+
 /* Time zone + Zoom settings */
 .cal-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; margin-bottom: 14px; font-size: 13px; color: var(--text-muted); }
 .cal-zoom-setting { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 480px; }
@@ -186,7 +212,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .crumb { background: none; border: none; font-size: 14px; color: var(--primary); cursor: pointer; padding: 2px 4px; font-weight: 500; }
 .crumb-current { color: var(--text); font-weight: 700; cursor: default; }
 .crumb-sep { color: var(--text-muted); }
-.browse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+.browse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
 .browse-grid-categories { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 .browse-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s; text-align: center; }
 .browse-tile:hover { border-color: var(--primary); box-shadow: var(--shadow); transform: translateY(-2px); }
@@ -202,6 +228,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .browse-preview.fullscreen { width: 96%; height: 94%; }
 .browse-preview-close { position: absolute; top: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 14px; }
 
+/* ── Header title group + segmented view switch ── */
+.page-title-group { display: flex; align-items: center; gap: 16px; }
+.view-segment { display: inline-flex; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 3px; gap: 2px; }
+.view-segment-btn { border: none; background: none; padding: 6px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: background 0.12s, color 0.12s; }
+.view-segment-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+/* Compact drop strip */
+.drop-zone-compact { flex-direction: row; padding: 10px 16px; gap: 10px; font-size: 13px; }
+.drop-zone-compact .drop-icon { font-size: 18px; }
+
 /* ── Custom folders, labels, organize ── */
 .browse-folder-tile { border-top: 4px solid var(--primary); position: relative; }
 .browse-folder-tile.drag-target { border-color: var(--primary); background: #eef4ff; transform: scale(1.04); }
@@ -210,10 +246,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .browse-new-folder { border: 2px dashed var(--border); background: transparent; box-shadow: none; color: var(--text-muted); justify-content: center; }
 .browse-new-folder:hover { border-color: var(--primary); color: var(--primary); transform: none; box-shadow: none; }
 .browse-tile { position: relative; }
-.tile-organize-btn, .tile-delete-btn { position: absolute; top: 6px; width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 11px; opacity: 0; transition: opacity 0.12s; z-index: 2; display: flex; align-items: center; justify-content: center; }
+.tile-organize-btn, .tile-delete-btn { position: absolute; top: 6px; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 12px; opacity: 0.45; transition: opacity 0.12s, background 0.12s; z-index: 2; display: flex; align-items: center; justify-content: center; }
 .tile-organize-btn { right: 6px; }
-.tile-delete-btn { right: 34px; color: var(--danger); }
+.tile-delete-btn { right: 36px; color: var(--danger); }
 .browse-tile:hover .tile-organize-btn, .browse-tile:hover .tile-delete-btn { opacity: 1; }
+.tile-organize-btn:hover, .tile-delete-btn:hover { background: var(--bg); }
 .tile-color-label { position: absolute; top: 8px; left: 8px; width: 12px; height: 12px; border-radius: 50%; z-index: 2; box-shadow: 0 0 0 2px var(--surface); }
 .folder-color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
 .color-swatches { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 16px; }

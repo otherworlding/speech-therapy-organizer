@@ -7,6 +7,7 @@ const DAY_MS = 86400000
 const MY_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 const APPT_COLORS = ['#4f8ef7', '#34c97a', '#f7a84f', '#c97adb', '#f75f9f', '#3ec9c9', '#8fd14f', '#f7d94f']
+const BLOCK_PRESETS = ['Lunch', 'Personal', 'Admin', 'Vacation', 'Unavailable']
 
 function toDateStr(d) { return d.toISOString().slice(0, 10) }
 function mondayOf(date) {
@@ -256,10 +257,95 @@ function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, on
   )
 }
 
+// ── Personal / unavailable time block ──
+function BlockModal({ block, onSave, onDelete, onCancel, isNew }) {
+  const [f, setF] = useState({
+    label: block.label || 'Lunch',
+    time: block.time,
+    durationMins: block.durationMins || 60,
+    notes: block.notes || '',
+  })
+  const start = apptStart({ ...block, ...f })
+  const submit = (e) => {
+    e.preventDefault()
+    onSave({ ...f, durationMins: Number(f.durationMins) })
+  }
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <h2>⛔ {isNew ? 'Block Time Off' : 'Edit Time Block'}</h2>
+        <p className="appt-when">
+          {new Date(block.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · {fmtTime(f.time)}
+        </p>
+        <form onSubmit={submit}>
+          <label>Type
+            <div className="block-preset-row">
+              {BLOCK_PRESETS.map(p => (
+                <button key={p} type="button"
+                  className={`block-preset ${f.label === p ? 'active' : ''}`}
+                  onClick={() => setF(s => ({ ...s, label: p }))}>{p}</button>
+              ))}
+            </div>
+          </label>
+          <label>Label (custom reminder)
+            <input value={f.label} onChange={e => setF(s => ({ ...s, label: e.target.value }))}
+              placeholder="e.g. Dentist, School pickup" />
+          </label>
+          <label>Start Time
+            <input type="time" value={f.time} onChange={e => setF(s => ({ ...s, time: e.target.value }))} step={300} />
+          </label>
+          <label>Length (minutes)
+            <input type="number" min="5" max="600" step="5" value={f.durationMins}
+              onChange={e => setF(s => ({ ...s, durationMins: e.target.value }))} />
+          </label>
+          <label>Notes
+            <textarea rows={2} value={f.notes} onChange={e => setF(s => ({ ...s, notes: e.target.value }))}
+              placeholder="Optional reminder details…" />
+          </label>
+          <div className="form-actions">
+            {!isNew && <button type="button" className="btn-danger" onClick={onDelete}>Delete</button>}
+            <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn-primary">{isNew ? 'Block Time' : 'Save'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ── Small "what kind of entry?" chooser shown when an empty slot is clicked ──
+function SlotChoice({ onPick, onCancel }) {
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal modal-slim" onClick={e => e.stopPropagation()}>
+        <h2>Add to this time</h2>
+        <div className="slot-choice-row">
+          <button className="slot-choice-btn" onClick={() => onPick('client')}>
+            <span className="slot-choice-icon">👦</span>
+            <span className="slot-choice-label">Book Client</span>
+            <span className="slot-choice-sub">Appointment + invitation</span>
+          </button>
+          <button className="slot-choice-btn" onClick={() => onPick('block')}>
+            <span className="slot-choice-icon">⛔</span>
+            <span className="slot-choice-label">Block Time Off</span>
+            <span className="slot-choice-sub">Lunch, personal, admin…</span>
+          </button>
+        </div>
+        <div className="form-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CalendarPage({ store }) {
   const [weekStart, setWeekStart] = useState(mondayOf(new Date()))
   const [openAppt, setOpenAppt] = useState(null)
   const [newSlot, setNewSlot] = useState(null)
+  const [slotChoice, setSlotChoice] = useState(null)   // { date, time } awaiting client/block pick
+  const [newBlock, setNewBlock] = useState(null)
+  const [openBlock, setOpenBlock] = useState(null)
 
   const days = Array.from({ length: 7 }, (_, i) => new Date(weekStart.getTime() + i * DAY_MS))
   const todayStr = toDateStr(new Date())
@@ -316,13 +402,22 @@ export default function CalendarPage({ store }) {
     return APPT_COLORS[idx >= 0 ? idx % APPT_COLORS.length : 0]
   }
 
-  const apptsForDay = (dateStr) => (store.appointments || []).filter(a => a.date === dateStr)
+  // Client appointments and personal blocks share the appointments array; type separates them
+  const apptsForDay = (dateStr) => (store.appointments || []).filter(a => a.date === dateStr && a.type !== 'block')
+  const blocksForDay = (dateStr) => (store.appointments || []).filter(a => a.date === dateStr && a.type === 'block')
 
   const clickSlot = (dateStr, slotIdx) => {
     const mins = slotIdx * 30
     const h = START_HOUR + Math.floor(mins / 60)
     const m = mins % 60
-    setNewSlot({ date: dateStr, time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` })
+    setSlotChoice({ date: dateStr, time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` })
+  }
+
+  const pickSlotKind = (kind) => {
+    const slot = slotChoice
+    setSlotChoice(null)
+    if (kind === 'client') setNewSlot(slot)
+    else setNewBlock({ ...slot, label: 'Lunch', durationMins: 60 })
   }
 
   return (
@@ -382,6 +477,17 @@ export default function CalendarPage({ store }) {
                   <div key={i} className="cal-slot" style={{ top: i * SLOT_PX, height: SLOT_PX }}
                     onClick={() => clickSlot(dateStr, i)} />
                 ))}
+                {blocksForDay(dateStr).map(b => {
+                  const top = (minutesFromStart(b.time) / 30) * SLOT_PX
+                  const height = Math.max((b.durationMins / 30) * SLOT_PX - 2, 12)
+                  return (
+                    <div key={b.id} className="cal-block" title={`${b.label} — click to edit`}
+                      style={{ top, height }}
+                      onClick={e => { e.stopPropagation(); setOpenBlock(b) }}>
+                      <span className="cal-block-label">⛔ {b.label}</span>
+                    </div>
+                  )
+                })}
                 {apptsForDay(dateStr).map(a => {
                   const top = (minutesFromStart(a.time) / 30) * SLOT_PX
                   const height = Math.max((a.durationMins / 30) * SLOT_PX - 2, 12)
@@ -398,6 +504,27 @@ export default function CalendarPage({ store }) {
           )
         })}
       </div>
+
+      {slotChoice && (
+        <SlotChoice onPick={pickSlotKind} onCancel={() => setSlotChoice(null)} />
+      )}
+
+      {newBlock && (
+        <BlockModal
+          block={newBlock} isNew
+          onSave={(f) => { store.addAppointment({ ...f, date: newBlock.date, type: 'block' }); setNewBlock(null) }}
+          onCancel={() => setNewBlock(null)}
+        />
+      )}
+
+      {openBlock && (
+        <BlockModal
+          block={openBlock}
+          onSave={(f) => { store.updateAppointment(openBlock.id, f); setOpenBlock(null) }}
+          onDelete={() => { store.deleteAppointment(openBlock.id); setOpenBlock(null) }}
+          onCancel={() => setOpenBlock(null)}
+        />
+      )}
 
       {newSlot && (
         <ApptModal
