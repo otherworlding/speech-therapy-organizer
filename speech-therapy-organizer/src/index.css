@@ -230,6 +230,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .browse-section-title { font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
 .browse-importing { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 8px 14px; font-size: 13px; margin-bottom: 12px; }
 
+/* ── Checkbox row in forms ── */
+.checkbox-row { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+.checkbox-row input { width: auto !important; }
+
 /* ── Settings + Zoom wizard ── */
 .settings-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 18px; box-shadow: var(--shadow); }
 .settings-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }

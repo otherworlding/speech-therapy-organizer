@@ -15,11 +15,20 @@ function ClientForm({ initial, title, submitLabel, onSubmit, onCancel }) {
   const [form, setForm] = useState({
     name: initial?.name || '', dob: initial?.dob || '', notes: initial?.notes || '',
     email: initial?.email || '', timezone: initial?.timezone || MY_TZ,
+    phone: initial?.phone || '', whatsapp: initial?.whatsapp || '',
+    preferredContact: initial?.preferredContact || 'email',
   })
+  const [sameAsPhone, setSameAsPhone] = useState(!!initial?.phone && initial?.phone === initial?.whatsapp)
   const submit = (e) => {
     e.preventDefault()
     if (!form.name.trim()) return
-    onSubmit({ name: form.name.trim(), dob: form.dob, notes: form.notes, email: form.email.trim(), timezone: form.timezone })
+    onSubmit({
+      name: form.name.trim(), dob: form.dob, notes: form.notes,
+      email: form.email.trim(), timezone: form.timezone,
+      phone: form.phone.trim(),
+      whatsapp: (sameAsPhone ? form.phone : form.whatsapp).trim(),
+      preferredContact: form.preferredContact,
+    })
   }
   return (
     <div className="modal-backdrop" onClick={onCancel}>
@@ -32,8 +41,26 @@ function ClientForm({ initial, title, submitLabel, onSubmit, onCancel }) {
           <label>Date of Birth
             <input type="date" value={form.dob} onChange={e => setForm(f => ({ ...f, dob: e.target.value }))} />
           </label>
-          <label>Parent Email (for invitations)
+          <label>Parent Email
             <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="parent@example.com" />
+          </label>
+          <label>Phone Number
+            <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 415 555 1234 (include country code)" />
+          </label>
+          <label className="checkbox-row">
+            <input type="checkbox" checked={sameAsPhone} onChange={e => setSameAsPhone(e.target.checked)} />
+            WhatsApp is the same as phone
+          </label>
+          {!sameAsPhone && (
+            <label>WhatsApp Number
+              <input type="tel" value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="+1 415 555 1234 (include country code)" />
+            </label>
+          )}
+          <label>Preferred Contact (used by automated invitations)
+            <select value={form.preferredContact} onChange={e => setForm(f => ({ ...f, preferredContact: e.target.value }))}>
+              <option value="email">📧 Email</option>
+              <option value="whatsapp">💬 WhatsApp</option>
+            </select>
           </label>
           <label>Time Zone
             <select value={form.timezone} onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))}>

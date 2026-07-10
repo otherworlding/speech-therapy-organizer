@@ -50,6 +50,20 @@ function icsStamp(d) {
   return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
 }
 
+// wa.me needs digits only, international format
+function waNumber(client) {
+  const raw = client?.whatsapp || client?.phone || ''
+  const digits = raw.replace(/[^\d]/g, '')
+  return digits.length >= 7 ? digits : null
+}
+
+function openWhatsApp(client, text) {
+  const num = waNumber(client)
+  if (!num) return false
+  window.api?.openExternal(`https://wa.me/${num}?text=${encodeURIComponent(text)}`)
+  return true
+}
+
 function buildInvitation({ appt, client, zoomLink }) {
   const start = apptStart(appt)
   const end = new Date(start.getTime() + appt.durationMins * 60000)
@@ -147,6 +161,9 @@ function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, on
     const to = encodeURIComponent(client?.email || '')
     window.api?.openExternal(`mailto:${to}?subject=${subject}&body=${body}`)
   }
+  const whatsappInvite = () => {
+    openWhatsApp(client, buildInvitation({ appt: current, client, zoomLink: effectiveLink }))
+  }
   const exportIcs = () => {
     const filename = `Session-${(client?.name || 'client').replace(/\s/g, '-')}-${current.date}.ics`
     window.api?.exportReport(filename, buildIcs({ appt: current, client, zoomLink: effectiveLink }))
@@ -220,6 +237,10 @@ function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, on
           <div className="appt-invite-row">
             <button type="button" className="btn-secondary" onClick={copyInvite}>{copied ? '✓ Copied' : '📋 Copy Invite'}</button>
             <button type="button" className="btn-secondary" onClick={emailInvite}>✉️ Email</button>
+            <button type="button" className="btn-secondary" onClick={whatsappInvite} disabled={!waNumber(client)}
+              title={waNumber(client) ? 'Open WhatsApp with the invitation filled in' : 'Add a phone/WhatsApp number to this client first'}>
+              💬 WhatsApp
+            </button>
             <button type="button" className="btn-secondary" onClick={exportIcs}>📅 .ics File</button>
           </div>
           {!effectiveLink && <div className="appt-tz-hint">Tip: connect Zoom in Settings (or set a room link there) so invites include a meeting link.</div>}
@@ -272,10 +293,12 @@ export default function CalendarPage({ store }) {
     if (inviteMode === 'auto') {
       const link = appt.zoomJoinUrl || zoomLink
       const start = apptStart(appt)
+      const invitation = buildInvitation({ appt, client, zoomLink: link })
+      // Open the channel this family actually uses
+      if (client?.preferredContact === 'whatsapp' && openWhatsApp(client, invitation)) return
       const subject = encodeURIComponent(`Speech Therapy Session — ${inTz(start, client?.timezone || MY_TZ)}`)
-      const body = encodeURIComponent(buildInvitation({ appt, client, zoomLink: link }))
       const to = encodeURIComponent(client?.email || '')
-      window.api?.openExternal(`mailto:${to}?subject=${subject}&body=${body}`)
+      window.api?.openExternal(`mailto:${to}?subject=${subject}&body=${encodeURIComponent(invitation)}`)
     }
   }
 
