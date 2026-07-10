@@ -329,7 +329,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .empty-icon { font-size: 48px; margin-bottom: 12px; }
 
 /* ── Modal ── */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+/* Scrollable + top-padded so a tall modal on a short screen is never clipped unreachably */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: flex-start; justify-content: center; z-index: 100; overflow-y: auto; padding: 5vh 16px; }
 .modal { background: var(--surface); border-radius: 14px; padding: 28px; width: 420px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
 .modal-wide { width: 560px; }
 .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
@@ -366,7 +367,9 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 
 /* ── Session View ── */
 .session-shell { display: flex; flex-direction: column; height: 100vh; background: var(--session-bg); color: white; overflow: hidden; }
-.session-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: #1a2035; border-bottom: 1px solid var(--session-border); -webkit-app-region: drag; flex-shrink: 0; }
+/* Left padding clears the macOS traffic-light buttons so the client name doesn't overlap them */
+.session-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px 12px 82px; background: #1a2035; border-bottom: 1px solid var(--session-border); -webkit-app-region: drag; flex-shrink: 0; }
+.session-topbar button { -webkit-app-region: no-drag; }
 .session-client-name { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: white; }
 .session-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
 .session-tabs { display: flex; gap: 6px; margin: 0 auto; -webkit-app-region: no-drag; }
@@ -463,7 +466,7 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .playlist-tile.in-playlist { border-color: var(--success); }
 .playlist-tile.repeat { border-color: var(--warn); }
 .playlist-icon { font-size: 22px; }
-.playlist-name { font-size: 10px; color: rgba(255,255,255,0.75); line-height: 1.2; max-height: 28px; overflow: hidden; }
+.playlist-name { font-size: 10px; color: rgba(255,255,255,0.75); line-height: 1.2; width: 100%; overflow: hidden; text-overflow: ellipsis; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .playlist-trials { font-size: 9px; color: var(--success); font-weight: 600; }
 .playlist-repeat-dot { position: absolute; top: 4px; right: 4px; font-size: 10px; }
 .playlist-check { position: absolute; top: 4px; right: 4px; background: var(--success); color: white; font-size: 9px; font-weight: 700; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
