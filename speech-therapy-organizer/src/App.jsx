@@ -8,6 +8,7 @@ import SessionSetup from './pages/SessionSetup'
 import SessionView from './pages/SessionView'
 import ReportsPage from './pages/ReportsPage'
 import CalendarPage from './pages/CalendarPage'
+import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
   const store = useStore()
@@ -51,6 +52,7 @@ export default function App() {
         )}
         {view === 'reports' && <ReportsPage store={store} />}
         {view === 'calendar' && <CalendarPage store={store} />}
+        {view === 'settings' && <SettingsPage store={store} />}
       </main>
       </div>
 

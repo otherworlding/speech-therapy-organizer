@@ -202,6 +202,39 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .browse-preview.fullscreen { width: 96%; height: 94%; }
 .browse-preview-close { position: absolute; top: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 14px; }
 
+/* ── Settings + Zoom wizard ── */
+.settings-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 18px; box-shadow: var(--shadow); }
+.settings-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.settings-card-header h2 { font-size: 17px; }
+.settings-intro p { font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+.settings-note { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.settings-divider { height: 1px; background: var(--border); margin: 16px 0; }
+.settings-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.settings-toggle-label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.mode-switch { display: flex; gap: 6px; flex-shrink: 0; }
+.zoom-badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px; }
+.zoom-connected { background: #dcf5e7; color: #147a43; }
+.zoom-ok { background: #dcf5e7; color: #147a43; }
+.zoom-warn { background: #fef3c7; color: #92400e; }
+.zoom-wizard { padding-top: 6px; }
+.wizard-progress { display: flex; gap: 10px; margin-bottom: 16px; }
+.wizard-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--bg); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.wizard-dot.active { border-color: var(--primary); color: var(--primary); }
+.wizard-dot.done { background: var(--primary); border-color: var(--primary); color: white; }
+.wizard-title { font-size: 15px; margin-bottom: 8px; }
+.wizard-body { font-size: 14px; line-height: 1.6; color: var(--text); margin-bottom: 14px; max-width: 560px; }
+.wizard-creds { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; max-width: 420px; }
+.wizard-creds label { font-size: 13px; font-weight: 600; display: flex; flex-direction: column; gap: 4px; }
+.wizard-creds input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-family: monospace; }
+.wizard-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-top: 12px; }
+.wizard-error-hint { font-size: 12px; color: #dc2626; margin-top: 4px; }
+.zoom-connected-panel { display: flex; flex-direction: column; gap: 10px; }
+.zoom-account-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.zoom-email { color: var(--text-muted); font-size: 12px; }
+.appt-zoom-box { margin: 8px 0; }
+.appt-zoom-ready { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.appt-start-btn { padding: 7px 16px; font-size: 13px; }
+
 /* ── Drop zone ── */
 .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 20px; background: var(--surface); color: var(--text-muted); font-size: 14px; transition: border-color 0.15s, background 0.15s; cursor: default; }
 .drop-zone.drag-over { border-color: var(--primary); background: #f0f6ff; color: var(--primary); }

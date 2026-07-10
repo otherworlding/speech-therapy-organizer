@@ -5,6 +5,7 @@ const NAV = [
   { id: 'calendar', icon: '📅', label: 'Schedule' },
   { id: 'materials', icon: '📁', label: 'Materials Library' },
   { id: 'reports', icon: '📋', label: 'Session Reports' },
+  { id: 'settings', icon: '⚙️', label: 'Settings' },
 ]
 
 export default function Sidebar({ view, setView }) {

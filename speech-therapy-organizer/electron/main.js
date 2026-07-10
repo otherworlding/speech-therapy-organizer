@@ -226,6 +226,91 @@ ipcMain.handle('shell:open-external', (_, url) => {
   return true
 })
 
+// ── Zoom API (Server-to-Server OAuth) ──────────────────────────────────
+const https = require('https')
+
+function httpsJson(options, body) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, res => {
+      let data = ''
+      res.on('data', c => { data += c })
+      res.on('end', () => {
+        try { resolve({ status: res.statusCode, json: JSON.parse(data || '{}') }) }
+        catch { resolve({ status: res.statusCode, json: {} }) }
+      })
+    })
+    req.on('error', reject)
+    if (body) req.write(body)
+    req.end()
+  })
+}
+
+async function zoomToken({ accountId, clientId, clientSecret }) {
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+  const { status, json } = await httpsJson({
+    hostname: 'zoom.us',
+    path: `/oauth/token?grant_type=account_credentials&account_id=${encodeURIComponent(accountId)}`,
+    method: 'POST',
+    headers: { Authorization: `Basic ${auth}` },
+  })
+  if (status !== 200 || !json.access_token) {
+    throw new Error(json.reason || json.error_description || json.error || `Zoom login failed (${status})`)
+  }
+  return json.access_token
+}
+
+// Test credentials: returns account email + plan type (1 = Basic/free, 2 = Licensed)
+ipcMain.handle('zoom:test', async (_, creds) => {
+  try {
+    const token = await zoomToken(creds)
+    const { status, json } = await httpsJson({
+      hostname: 'api.zoom.us', path: '/v2/users/me', method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (status !== 200) throw new Error(json.message || `Could not read Zoom profile (${status})`)
+    return { success: true, email: json.email, planType: json.type, name: `${json.first_name || ''} ${json.last_name || ''}`.trim() }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+
+// Create a unique meeting for an appointment
+ipcMain.handle('zoom:create-meeting', async (_, { creds, topic, startIso, durationMins, timezone }) => {
+  try {
+    const token = await zoomToken(creds)
+    const body = JSON.stringify({
+      topic: topic || 'Speech Therapy Session',
+      type: 2, // scheduled
+      start_time: startIso,
+      duration: durationMins,
+      timezone,
+      settings: { waiting_room: true, join_before_host: false },
+    })
+    const { status, json } = await httpsJson({
+      hostname: 'api.zoom.us', path: '/v2/users/me/meetings', method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, body)
+    if (status !== 201) throw new Error(json.message || `Zoom refused to create the meeting (${status})`)
+    return { success: true, meetingId: json.id, joinUrl: json.join_url, startUrl: json.start_url }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+
+// Delete a Zoom meeting (when an appointment is cancelled)
+ipcMain.handle('zoom:delete-meeting', async (_, { creds, meetingId }) => {
+  try {
+    const token = await zoomToken(creds)
+    await httpsJson({
+      hostname: 'api.zoom.us', path: `/v2/meetings/${meetingId}`, method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+
 // Copy text to clipboard via shell
 ipcMain.handle('clipboard:write', (_, text) => {
   const { clipboard } = require('electron')

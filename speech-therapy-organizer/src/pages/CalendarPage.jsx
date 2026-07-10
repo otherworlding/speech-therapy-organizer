@@ -89,41 +89,67 @@ function buildIcs({ appt, client, zoomLink }) {
   ].filter(Boolean).join('\r\n')
 }
 
-function ApptModal({ appt, clients, clientColor, zoomLink, onSave, onDelete, onCancel, isNew }) {
+function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, onDelete, onCancel, isNew }) {
   const [f, setF] = useState({
     clientId: appt.clientId || clients[0]?.id || '',
     time: appt.time,
     durationMins: appt.durationMins || 45,
     notes: appt.notes || '',
   })
+  const [zoomInfo, setZoomInfo] = useState({
+    zoomMeetingId: appt.zoomMeetingId || null,
+    zoomJoinUrl: appt.zoomJoinUrl || null,
+    zoomStartUrl: appt.zoomStartUrl || null,
+  })
+  const [zoomBusy, setZoomBusy] = useState(false)
+  const [zoomError, setZoomError] = useState(null)
   const [copied, setCopied] = useState(false)
   const client = clients.find(c => c.id === f.clientId)
-  const current = { ...appt, ...f, durationMins: Number(f.durationMins) }
+  const current = { ...appt, ...f, ...zoomInfo, durationMins: Number(f.durationMins) }
   const start = apptStart(current)
   const end = new Date(start.getTime() + current.durationMins * 60000)
   const clientTz = client?.timezone
   const tzDiffers = clientTz && clientTz !== MY_TZ
+  // Unique meeting link wins over the personal room fallback
+  const effectiveLink = zoomInfo.zoomJoinUrl || zoomLink
 
   const submit = (e) => {
     e.preventDefault()
     if (!f.clientId) return
-    onSave({ ...f, durationMins: Number(f.durationMins) })
+    onSave({ ...f, ...zoomInfo, durationMins: Number(f.durationMins) })
+  }
+
+  const createZoomMeeting = async () => {
+    setZoomBusy(true); setZoomError(null)
+    const result = await window.api.zoomCreateMeeting({
+      creds: zoomCreds,
+      topic: `Speech Therapy — ${client?.name || 'Session'}`,
+      startIso: start.toISOString(),
+      durationMins: current.durationMins,
+      timezone: MY_TZ,
+    })
+    setZoomBusy(false)
+    if (result.success) {
+      setZoomInfo({ zoomMeetingId: result.meetingId, zoomJoinUrl: result.joinUrl, zoomStartUrl: result.startUrl })
+    } else {
+      setZoomError(result.error)
+    }
   }
 
   const copyInvite = async () => {
-    await window.api?.copyToClipboard(buildInvitation({ appt: current, client, zoomLink }))
+    await window.api?.copyToClipboard(buildInvitation({ appt: current, client, zoomLink: effectiveLink }))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
   const emailInvite = () => {
     const subject = encodeURIComponent(`Speech Therapy Session — ${inTz(start, clientTz || MY_TZ)}`)
-    const body = encodeURIComponent(buildInvitation({ appt: current, client, zoomLink }))
+    const body = encodeURIComponent(buildInvitation({ appt: current, client, zoomLink: effectiveLink }))
     const to = encodeURIComponent(client?.email || '')
     window.api?.openExternal(`mailto:${to}?subject=${subject}&body=${body}`)
   }
   const exportIcs = () => {
     const filename = `Session-${(client?.name || 'client').replace(/\s/g, '-')}-${current.date}.ics`
-    window.api?.exportReport(filename, buildIcs({ appt: current, client, zoomLink }))
+    window.api?.exportReport(filename, buildIcs({ appt: current, client, zoomLink: effectiveLink }))
   }
 
   return (
@@ -172,12 +198,31 @@ function ApptModal({ appt, clients, clientColor, zoomLink, onSave, onDelete, onC
               placeholder="Focus areas, reminders…" />
           </label>
 
+          {zoomCreds && (
+            <div className="appt-zoom-box">
+              {zoomInfo.zoomJoinUrl ? (
+                <div className="appt-zoom-ready">
+                  <span className="zoom-badge zoom-connected">✓ Unique Zoom meeting created</span>
+                  <button type="button" className="btn-primary appt-start-btn"
+                    onClick={() => window.api?.openExternal(zoomInfo.zoomStartUrl)}>
+                    ▶ Start Meeting
+                  </button>
+                </div>
+              ) : (
+                <button type="button" className="btn-secondary" onClick={createZoomMeeting} disabled={zoomBusy}>
+                  {zoomBusy ? 'Creating…' : '🎥 Create Zoom Meeting'}
+                </button>
+              )}
+              {zoomError && <div className="wizard-error">⚠ {zoomError}</div>}
+            </div>
+          )}
+
           <div className="appt-invite-row">
             <button type="button" className="btn-secondary" onClick={copyInvite}>{copied ? '✓ Copied' : '📋 Copy Invite'}</button>
             <button type="button" className="btn-secondary" onClick={emailInvite}>✉️ Email</button>
             <button type="button" className="btn-secondary" onClick={exportIcs}>📅 .ics File</button>
           </div>
-          {!zoomLink && <div className="appt-tz-hint">Tip: paste your Zoom room link above the calendar so invites include it.</div>}
+          {!effectiveLink && <div className="appt-tz-hint">Tip: connect Zoom in Settings (or set a room link there) so invites include a meeting link.</div>}
 
           <div className="form-actions">
             {!isNew && <button type="button" className="btn-danger" onClick={onDelete}>Delete</button>}
@@ -200,6 +245,48 @@ export default function CalendarPage({ store }) {
   const totalMinutes = (END_HOUR - START_HOUR) * 60
   const colHeight = (totalMinutes / 30) * SLOT_PX
   const zoomLink = store.settings?.zoomLink || ''
+  const zoom = store.settings?.zoom || {}
+  const zoomCreds = zoom.connected
+    ? { accountId: zoom.accountId, clientId: zoom.clientId, clientSecret: zoom.clientSecret }
+    : null
+  const inviteMode = store.settings?.inviteMode || 'manual'
+
+  // Automated mode: create the Zoom meeting and open the invitation email on booking
+  const saveNewAppointment = async (f) => {
+    let appt = { ...f, date: newSlot.date }
+    const client = store.clients.find(c => c.id === f.clientId)
+    if (inviteMode === 'auto' && zoomCreds && !appt.zoomJoinUrl) {
+      const result = await window.api.zoomCreateMeeting({
+        creds: zoomCreds,
+        topic: `Speech Therapy — ${client?.name || 'Session'}`,
+        startIso: apptStart(appt).toISOString(),
+        durationMins: appt.durationMins,
+        timezone: MY_TZ,
+      })
+      if (result.success) {
+        appt = { ...appt, zoomMeetingId: result.meetingId, zoomJoinUrl: result.joinUrl, zoomStartUrl: result.startUrl }
+      }
+    }
+    store.addAppointment(appt)
+    setNewSlot(null)
+    if (inviteMode === 'auto') {
+      const link = appt.zoomJoinUrl || zoomLink
+      const start = apptStart(appt)
+      const subject = encodeURIComponent(`Speech Therapy Session — ${inTz(start, client?.timezone || MY_TZ)}`)
+      const body = encodeURIComponent(buildInvitation({ appt, client, zoomLink: link }))
+      const to = encodeURIComponent(client?.email || '')
+      window.api?.openExternal(`mailto:${to}?subject=${subject}&body=${body}`)
+    }
+  }
+
+  const removeAppointment = (appt) => {
+    // Best effort: also cancel the unique Zoom meeting so it doesn't linger
+    if (appt.zoomMeetingId && zoomCreds) {
+      window.api.zoomDeleteMeeting({ creds: zoomCreds, meetingId: appt.zoomMeetingId })
+    }
+    store.deleteAppointment(appt.id)
+    setOpenAppt(null)
+  }
 
   const clientColor = (clientId) => {
     const idx = store.clients.findIndex(c => c.id === clientId)
@@ -231,15 +318,21 @@ export default function CalendarPage({ store }) {
 
       <div className="cal-settings-row">
         <span className="cal-my-tz">🌐 Your time zone: <strong>{MY_TZ.replace(/_/g, ' ')}</strong></span>
-        <div className="cal-zoom-setting">
-          <span>🎥 Zoom room link:</span>
-          <input
-            className="cal-zoom-input"
-            placeholder="https://zoom.us/j/1234567890"
-            defaultValue={zoomLink}
-            onBlur={e => { if (e.target.value !== zoomLink) store.updateSettings({ zoomLink: e.target.value.trim() }) }}
-          />
-        </div>
+        {zoomCreds ? (
+          <span className="zoom-badge zoom-connected">
+            🎥 Zoom connected ✓ {inviteMode === 'auto' ? '· invitations automated' : '· click-to-send invitations'}
+          </span>
+        ) : (
+          <div className="cal-zoom-setting">
+            <span>🎥 Zoom room link:</span>
+            <input
+              className="cal-zoom-input"
+              placeholder="https://zoom.us/j/1234567890"
+              defaultValue={zoomLink}
+              onBlur={e => { if (e.target.value !== zoomLink) store.updateSettings({ zoomLink: e.target.value.trim() }) }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="cal-grid">
@@ -286,8 +379,8 @@ export default function CalendarPage({ store }) {
       {newSlot && (
         <ApptModal
           appt={{ date: newSlot.date, time: newSlot.time, durationMins: 45 }}
-          clients={store.clients} clientColor={clientColor} zoomLink={zoomLink} isNew
-          onSave={(f) => { store.addAppointment({ ...f, date: newSlot.date }); setNewSlot(null) }}
+          clients={store.clients} clientColor={clientColor} zoomLink={zoomLink} zoomCreds={zoomCreds} isNew
+          onSave={saveNewAppointment}
           onCancel={() => setNewSlot(null)}
         />
       )}
@@ -295,9 +388,9 @@ export default function CalendarPage({ store }) {
       {openAppt && (
         <ApptModal
           appt={openAppt}
-          clients={store.clients} clientColor={clientColor} zoomLink={zoomLink}
+          clients={store.clients} clientColor={clientColor} zoomLink={zoomLink} zoomCreds={zoomCreds}
           onSave={(f) => { store.updateAppointment(openAppt.id, f); setOpenAppt(null) }}
-          onDelete={() => { store.deleteAppointment(openAppt.id); setOpenAppt(null) }}
+          onDelete={() => removeAppointment(openAppt)}
           onCancel={() => setOpenAppt(null)}
         />
       )}
