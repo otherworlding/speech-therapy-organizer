@@ -55,7 +55,21 @@
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m py_compile cymatic/*.py)",
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; from cymatic.renderer import Renderer; print\\('final import OK'\\)\")",
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; print\\('final import OK'\\)\")",
-      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/test.pdf)"
+      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/test.pdf)",
+      "Bash(\"/Users/otherworlding/Asset calulation *)",
+      "Bash(curl -s http://localhost:9333/json)",
+      "Bash(python3 -c \"import json,sys; t=[x for x in json.load\\(sys.stdin\\) if x['type']=='page']; print\\(t[0]['webSocketDebuggerUrl'] if t else 'NO PAGE'\\)\")",
+      "Bash(python3 -m json.tool)",
+      "Bash('/Users/otherworlding/Asset calulation *)",
+      "Bash(curl -s http://localhost:9444/json)",
+      "Bash(python3 -c \"import json,sys; t=[x for x in json.load\\(sys.stdin\\) if x['type']=='page']; print\\(t[0]['webSocketDebuggerUrl'] if t else 'NO PAGE TARGET'\\)\")",
+      "Bash(node /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/cdp-test.mjs ws://localhost:9444/devtools/page/796382E7865390DAD96CF2F012939E7C)",
+      "Bash(node /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/cdp-test.mjs 9444)",
+      "Bash(curl -s http://localhost:9444/json/list)",
+      "Bash(pkill -f \"Speech Therapy Organizer\")",
+      "Bash(node \"/private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/cdp-test.mjs\" 9444)",
+      "Bash(node -e \"console.log\\('pdfjs version:', require\\('pdfjs-dist/package.json'\\).version\\)\")",
+      "Bash(node -e ' *)"
     ]
   }
 }
