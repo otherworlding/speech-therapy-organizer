@@ -202,6 +202,34 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .browse-preview.fullscreen { width: 96%; height: 94%; }
 .browse-preview-close { position: absolute; top: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 14px; }
 
+/* ── Custom folders, labels, organize ── */
+.browse-folder-tile { border-top: 4px solid var(--primary); position: relative; }
+.browse-folder-tile.drag-target { border-color: var(--primary); background: #eef4ff; transform: scale(1.04); }
+.folder-icon-tinted { filter: none; }
+.browse-smart-tile { border-top: 4px solid #64748b; }
+.browse-new-folder { border: 2px dashed var(--border); background: transparent; box-shadow: none; color: var(--text-muted); justify-content: center; }
+.browse-new-folder:hover { border-color: var(--primary); color: var(--primary); transform: none; box-shadow: none; }
+.browse-tile { position: relative; }
+.tile-organize-btn, .tile-delete-btn { position: absolute; top: 6px; width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 11px; opacity: 0; transition: opacity 0.12s; z-index: 2; display: flex; align-items: center; justify-content: center; }
+.tile-organize-btn { right: 6px; }
+.tile-delete-btn { right: 34px; color: var(--danger); }
+.browse-tile:hover .tile-organize-btn, .browse-tile:hover .tile-delete-btn { opacity: 1; }
+.tile-color-label { position: absolute; top: 8px; left: 8px; width: 12px; height: 12px; border-radius: 50%; z-index: 2; box-shadow: 0 0 0 2px var(--surface); }
+.folder-color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+.color-swatches { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 16px; }
+.color-swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; }
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.selected { border-color: var(--text); transform: scale(1.15); }
+.swatch-none { background: var(--bg); color: var(--text-muted); font-size: 12px; border-color: var(--border); display: flex; align-items: center; justify-content: center; }
+.organize-section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 14px 0 6px; }
+.move-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+.move-item { text-align: left; background: none; border: none; padding: 8px 14px; border-radius: 6px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.move-item:hover { background: var(--bg); }
+.move-item.current { background: #eef4ff; color: var(--primary); font-weight: 600; }
+.browse-search { margin-left: auto; padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; width: 240px; }
+.browse-section-title { font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+.browse-importing { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 8px 14px; font-size: 13px; margin-bottom: 12px; }
+
 /* ── Settings + Zoom wizard ── */
 .settings-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 18px; box-shadow: var(--shadow); }
 .settings-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }

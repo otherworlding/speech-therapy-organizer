@@ -287,7 +287,7 @@ export default function MaterialsPage({ store }) {
         </div>
       )}
 
-      {browseMode && <MaterialsBrowser store={store} />}
+      {browseMode && <MaterialsBrowser store={store} importFile={importFile} importFolder={importFolder} />}
 
       {!browseMode && (
       <div className="filter-bar">

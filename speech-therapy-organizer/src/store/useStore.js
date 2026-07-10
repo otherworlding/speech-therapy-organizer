@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 const isElectron = typeof window !== 'undefined' && window.api
-const EMPTY = { clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {} }
+const EMPTY = { clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [] }
 
 function localLoad() {
   try { return { ...EMPTY, ...JSON.parse(localStorage.getItem('sto_data')) } }
@@ -66,7 +66,7 @@ export function useStore() {
 
   // ── Materials ─────────────────────────────────────────────────────────
   const addMaterial = (material) => {
-    const m = { id: uuidv4(), tags: [], ...material }
+    const m = { id: uuidv4(), tags: [], createdAt: new Date().toISOString(), ...material }
     // Functional update so rapid sequential calls each see the latest state
     setData(prev => {
       const next = { ...prev, materials: [...prev.materials, m] }
@@ -132,6 +132,27 @@ export function useStore() {
     })
   }
 
+  // ── Folders (materials organization) ──────────────────────────────────
+  const addFolder = (name, color, parentId = null) => {
+    const f = { id: uuidv4(), name, color, parentId }
+    persist({ ...data, folders: [...(data.folders || []), f] })
+    return f
+  }
+  const updateFolder = (id, updates) => {
+    persist({ ...data, folders: (data.folders || []).map(f => f.id === id ? { ...f, ...updates } : f) })
+  }
+  const deleteFolder = (id) => {
+    const folders = data.folders || []
+    const target = folders.find(f => f.id === id)
+    const parent = target?.parentId || null
+    // Children and contents move up one level rather than being lost
+    persist({
+      ...data,
+      folders: folders.filter(f => f.id !== id).map(f => f.parentId === id ? { ...f, parentId: parent } : f),
+      materials: data.materials.map(m => m.folderId === id ? { ...m, folderId: parent } : m),
+    })
+  }
+
   // ── Settings ──────────────────────────────────────────────────────────
   const updateSettings = (updates) => {
     persist({ ...data, settings: { ...(data.settings || {}), ...updates } })
@@ -157,12 +178,14 @@ export function useStore() {
     goals: data.goals,
     appointments: data.appointments || [],
     settings: data.settings || {},
+    folders: data.folders || [],
     loaded,
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
     addMaterial, updateMaterial, deleteMaterial,
     addSession, updateSession, deleteSession,
     addGoal, updateGoal, deleteGoal, addGoalProgress,
     addAppointment, updateAppointment, deleteAppointment,
+    addFolder, updateFolder, deleteFolder,
     updateSettings,
   }
 }

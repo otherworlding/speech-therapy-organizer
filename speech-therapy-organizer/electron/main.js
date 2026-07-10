@@ -31,7 +31,7 @@ function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
 }
 
-const EMPTY_DATA = { clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {} }
+const EMPTY_DATA = { clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [] }
 
 function loadData() {
   ensureDataDir()
