@@ -69,7 +69,16 @@
       "Bash(pkill -f \"Speech Therapy Organizer\")",
       "Bash(node \"/private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/cdp-test.mjs\" 9444)",
       "Bash(node -e \"console.log\\('pdfjs version:', require\\('pdfjs-dist/package.json'\\).version\\)\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(node node_modules/electron/install.js)",
+      "Bash(npx electron *)",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(npm rebuild *)",
+      "Bash(ditto -x -k ~/Library/Caches/electron/2a4c2a9e0c4d0a2f7d7f2309c010f1b2fbb19a7f1a2ca4cd653d0fcc2aa53a99/electron-v32.3.3-darwin-arm64.zip node_modules/electron/dist)",
+      "Bash(node_modules/electron/dist/Electron.app/Contents/MacOS/Electron --version)",
+      "Bash(echo \"exit: $?\")",
+      "Read(//Volumes/**)",
+      "Bash(hdiutil detach *)"
     ]
   }
 }
