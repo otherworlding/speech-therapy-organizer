@@ -54,7 +54,8 @@
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m py_compile cymatic/app.py cymatic/renderer.py cymatic/shaders.py cymatic/config.py cymatic/audio.py)",
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -m py_compile cymatic/*.py)",
       "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; from cymatic.renderer import Renderer; print\\('final import OK'\\)\")",
-      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; print\\('final import OK'\\)\")"
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/python3 -c \"from cymatic.app import App; print\\('final import OK'\\)\")",
+      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/test.pdf)"
     ]
   }
 }

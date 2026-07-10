@@ -1,9 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
-// Inline the worker as a blob — a plain ?url worker fails to load from file:// in the packaged app
-import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker&inline'
+// Bundle the worker into the main thread — real Workers fail under file:// in the
+// packaged app, so pdf.js runs everything in-process. Reliable everywhere.
+import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs'
 
-pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker()
+if (pdfjsWorker?.WorkerMessageHandler) {
+  globalThis.pdfjsWorker = { WorkerMessageHandler: pdfjsWorker.WorkerMessageHandler }
+} else {
+  // Fallback if the export shape ever changes: fake-worker via dynamic import
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+}
 
 export default function PdfViewer({ filePath, onPageInfo }) {
   const canvasRef = useRef(null)
@@ -29,7 +35,7 @@ export default function PdfViewer({ filePath, onPageInfo }) {
         setPageNum(1)
         onPageInfo?.(1, doc.numPages)
       } catch (e) {
-        if (!cancelled) setError('Could not load PDF.')
+        if (!cancelled) setError(`Could not load PDF: ${e?.message || e}`)
       }
       if (!cancelled) setLoading(false)
     }
@@ -48,7 +54,9 @@ export default function PdfViewer({ filePath, onPageInfo }) {
         const canvas = canvasRef.current
         const ctx = canvas.getContext('2d')
         const container = canvas.parentElement
-        const scale = Math.min(container.clientWidth / page.getViewport({ scale: 1 }).width, 1.8)
+        // Guard against a zero-width container (modal still laying out) — never render a 0px canvas
+        const width = Math.max(container.clientWidth, 320)
+        const scale = Math.min(width / page.getViewport({ scale: 1 }).width, 1.8)
         const vp = page.getViewport({ scale })
         canvas.width = vp.width; canvas.height = vp.height
         const task = page.render({ canvasContext: ctx, viewport: vp })
