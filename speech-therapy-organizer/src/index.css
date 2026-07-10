@@ -382,7 +382,15 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 
 /* Session body layout */
 .session-body { flex: 1; display: flex; overflow: hidden; }
-.session-viewer-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.session-viewer-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+/* Fullscreen prev/next navigation */
+.fs-nav { position: fixed; top: 50%; transform: translateY(-50%); z-index: 210; width: 52px; height: 84px; border: none; background: rgba(0,0,0,0.35); color: rgba(255,255,255,0.85); font-size: 34px; cursor: pointer; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: background 0.15s, opacity 0.15s; }
+.fs-nav:hover { background: rgba(0,0,0,0.6); }
+.fs-nav:disabled { opacity: 0.2; cursor: default; }
+.fs-nav-prev { left: 16px; }
+.fs-nav-next { right: 16px; }
+.fs-nav-count { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 210; background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; padding: 5px 14px; border-radius: 14px; }
 .session-tools-col { width: 240px; flex-shrink: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 12px; background: #141b2d; border-left: 1px solid var(--session-border); }
 .session-bottom { flex-shrink: 0; background: #141b2d; border-top: 1px solid var(--session-border); max-height: 130px; }
 
@@ -522,6 +530,15 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .timer-bar-mode-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .timer-bar-big-bg { position: relative; height: 36px; background: rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; }
 .timer-bar-big-fill { height: 100%; border-radius: 8px; transition: width 1s linear, background 1s; }
+
+/* Slim, subtle default bar */
+.timer-slim { padding: 10px 12px; }
+.timer-slim-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.timer-slim-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); }
+.timer-slim-controls { display: flex; gap: 4px; }
+.timer-slim-bar-bg { position: relative; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.timer-slim-bar-fill { height: 100%; border-radius: 4px; transition: width 1s linear, background 1.5s ease; opacity: 0.85; }
+.timer-slim .timer-stop-sign { width: 16px; height: 16px; }
 .timer-stop-sign {
   position: absolute;
   top: 50%; left: 50%;

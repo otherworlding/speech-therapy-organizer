@@ -6,9 +6,9 @@ const DURATIONS = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 9
 export default function SessionSetup({ client, onStart, onCancel }) {
   const [tools, setTools] = useState({
     timer: true, timerMins: 45,
-    trials: true,
-    tokens: true, tokenGoal: 5,
-    cues: true,
+    trials: false,
+    tokens: false, tokenGoal: 5,
+    cues: false,
   })
 
   const toggle = (key) => setTools(t => ({ ...t, [key]: !t[key] }))

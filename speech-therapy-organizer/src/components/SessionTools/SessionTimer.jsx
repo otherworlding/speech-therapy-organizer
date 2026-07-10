@@ -17,7 +17,7 @@ export default function SessionTimer({ durationMins = 45, onTick }) {
   const total = durationMins * 60
   const [elapsed, setElapsed] = useState(0)
   const [running, setRunning] = useState(true)
-  const [barMode, setBarMode] = useState(false)
+  const [barMode, setBarMode] = useState(true)  // subtle slim bar by default
   const ref = useRef(null)
 
   useEffect(() => {
@@ -40,15 +40,18 @@ export default function SessionTimer({ durationMins = 45, onTick }) {
 
   if (barMode) {
     return (
-      <div className={`tool-panel session-timer ${over ? 'timer-over' : ''}`}>
-        <div className="timer-bar-mode-header">
-          <button className="timer-mode-btn" onClick={() => setBarMode(false)} title="Show numbers">🔢</button>
-          <button className="timer-toggle" onClick={() => setRunning(r => !r)}>{running ? '⏸' : '▶'}</button>
+      <div className={`tool-panel session-timer timer-slim ${over ? 'timer-over' : ''}`}>
+        <div className="timer-slim-header">
+          <span className="timer-slim-label">⏱ Time</span>
+          <div className="timer-slim-controls">
+            <button className="timer-mode-btn" onClick={() => setBarMode(false)} title="Show numbers">🔢</button>
+            <button className="timer-mode-btn" onClick={() => setRunning(r => !r)} title={running ? 'Pause' : 'Resume'}>{running ? '⏸' : '▶'}</button>
+          </div>
         </div>
-        <div className="timer-bar-big-bg">
+        <div className="timer-slim-bar-bg">
           {over
             ? <div className="timer-stop-sign" />
-            : <div className="timer-bar-big-fill" style={{ width: `${pct}%`, background: color }} />
+            : <div className="timer-slim-bar-fill" style={{ width: `${pct}%`, background: color }} />
           }
         </div>
       </div>

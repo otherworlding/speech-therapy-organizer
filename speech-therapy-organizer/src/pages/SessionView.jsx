@@ -68,6 +68,29 @@ export default function SessionView({ store, clientId, tools, onExit }) {
     setCurrentIdx(next.length - 1)
   }
 
+  // Step through the playlist (used by arrow keys)
+  const step = (delta) => {
+    setCurrentIdx(i => {
+      const next = Math.max(0, Math.min(playlist.length - 1, i + delta))
+      const id = playlist[next]?.id
+      if (id) setMaterialData(d => d[id] ? d : ({ ...d, [id]: { trials: { correct: 0, incorrect: 0 }, needsRepeat: false } }))
+      return next
+    })
+  }
+
+  // Keyboard navigation: ← / → move between materials (great in fullscreen); Esc exits fullscreen
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target.tagName || '').toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { step(1); e.preventDefault() }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { step(-1); e.preventDefault() }
+      else if (e.key === 'Escape' && fullscreen) { setFullscreen(false) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [playlist.length, fullscreen])
+
   const libMaterials = store.materials.filter(m => {
     if (libCat !== 'All' && m.category !== libCat) return false
     if (libSearch && !m.title.toLowerCase().includes(libSearch.toLowerCase())) return false
@@ -160,6 +183,14 @@ export default function SessionView({ store, clientId, tools, onExit }) {
             isFullscreen={fullscreen}
             onToggleFullscreen={() => setFullscreen(f => !f)}
           />
+          {/* Fullscreen prev/next — arrow keys work too */}
+          {fullscreen && playlist.length > 1 && (
+            <>
+              <button className="fs-nav fs-nav-prev" onClick={() => step(-1)} disabled={currentIdx === 0} title="Previous (←)">‹</button>
+              <button className="fs-nav fs-nav-next" onClick={() => step(1)} disabled={currentIdx === playlist.length - 1} title="Next (→)">›</button>
+              <div className="fs-nav-count">{currentIdx + 1} / {playlist.length}</div>
+            </>
+          )}
         </div>
 
         {/* Right tools panel */}
