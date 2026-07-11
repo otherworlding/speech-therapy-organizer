@@ -85,7 +85,17 @@
       "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/DropTest/Articulation/artic.pdf)",
       "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/DropTest/Articulation/R-sounds/rword.pdf)",
       "Bash(find /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/DropTest -not -path */.*)",
-      "Bash(python3 -c 'import json; d=json.load\\(open\\('\\\\''/Users/otherworlding/Library/Application Support/SpeechTherapyOrganizer/data.json'\\\\''\\)\\); print\\('\\\\''folders:'\\\\'', d.get\\('\\\\''folders'\\\\''\\)\\); print\\('\\\\''material titles:'\\\\'', [m.get\\('\\\\''title'\\\\''\\) for m in d.get\\('\\\\''materials'\\\\'',[]\\)]\\)')"
+      "Bash(python3 -c 'import json; d=json.load\\(open\\('\\\\''/Users/otherworlding/Library/Application Support/SpeechTherapyOrganizer/data.json'\\\\''\\)\\); print\\('\\\\''folders:'\\\\'', d.get\\('\\\\''folders'\\\\''\\)\\); print\\('\\\\''material titles:'\\\\'', [m.get\\('\\\\''title'\\\\''\\) for m in d.get\\('\\\\''materials'\\\\'',[]\\)]\\)')",
+      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Welcome.pdf)",
+      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/artic-cards.pdf)",
+      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/R-sounds/r-words.pdf)",
+      "Bash(find /Users/otherworlding/Desktop/DropTest-SpeechApp -not -path */.*)",
+      "Bash([ -d \"$DEST\" ])",
+      "Bash(open /Users/otherworlding/Desktop)",
+      "Bash(open /Users/otherworlding/Desktop/DropTest-SpeechApp)",
+      "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Welcome.pdf)",
+      "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/artic-cards.pdf)",
+      "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/R-sounds/r-words.pdf)"
     ]
   }
 }
