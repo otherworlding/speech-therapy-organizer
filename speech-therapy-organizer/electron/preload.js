@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld('api', {
   exportReport: (filename, content) => ipcRenderer.invoke('report:export', { filename, content }),
   copyToClipboard: (text) => ipcRenderer.invoke('clipboard:write', text),
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+  revealInFinder: (p) => ipcRenderer.invoke('shell:reveal', p),
+  createHomeworkFolder: (payload) => ipcRenderer.invoke('homework:create-folder', payload),
   zoomTest: (creds) => ipcRenderer.invoke('zoom:test', creds),
   zoomCreateMeeting: (payload) => ipcRenderer.invoke('zoom:create-meeting', payload),
   zoomDeleteMeeting: (payload) => ipcRenderer.invoke('zoom:delete-meeting', payload),

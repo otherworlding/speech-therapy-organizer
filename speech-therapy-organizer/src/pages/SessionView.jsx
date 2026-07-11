@@ -29,7 +29,6 @@ export default function SessionView({ store, clientId, tools, onExit }) {
   const [tokensEarned, setTokensEarned] = useState(0)
   const [showEnd, setShowEnd] = useState(false)
   const [showHomework, setShowHomework] = useState(false)
-  const [homeworkText, setHomeworkText] = useState('')
   const startTimeRef = useRef(Date.now())
   const elapsedRef = useRef(0)
   const sessionIdRef = useRef(null)
@@ -113,44 +112,16 @@ export default function SessionView({ store, clientId, tools, onExit }) {
     setShowHomework(true)
   }
 
-  const finishAndExit = (sendHomework) => {
-    if (sendHomework && homeworkText) {
-      store.updateSession(sessionIdRef.current, { homeworkNotes: homeworkText })
-    }
-    onExit()
-  }
 
   if (showHomework) {
-    const usedMats = playlist.filter((_, i) => true)
-    const defaultHW = `Session Summary — ${client.name} — ${new Date().toLocaleDateString()}\n\n` +
-      `Materials covered:\n${usedMats.map(m => `• ${m.title}`).join('\n')}\n\n` +
-      `Home Practice:\n`
-    if (!homeworkText) setHomeworkText(defaultHW)
     return (
-      <div className="session-shell" style={{ background: '#0f1523' }}>
-        <div className="modal-backdrop">
-          <div className="modal modal-wide">
-            <h2>📤 Parent Summary & Homework</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 12 }}>
-              Edit and send to the family after the session.
-            </p>
-            <textarea
-              className="notes-textarea"
-              style={{ minHeight: 260, fontFamily: 'monospace', fontSize: 13 }}
-              value={homeworkText}
-              onChange={e => setHomeworkText(e.target.value)}
-            />
-            <div className="form-actions">
-              <button className="btn-secondary" onClick={() => finishAndExit(false)}>Skip & Exit</button>
-              <button className="btn-secondary" onClick={() => window.api?.copyToClipboard(homeworkText)}>📋 Copy</button>
-              <button className="btn-primary" onClick={() => {
-                window.api?.exportReport(`Session-${client.name.replace(/\s/g,'-')}-${new Date().toISOString().slice(0,10)}.txt`, homeworkText)
-                finishAndExit(true)
-              }}>💾 Save & Exit</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <HomeworkShare
+        client={client}
+        sessionMaterials={playlist}
+        allMaterials={store.materials}
+        onLog={(fields) => store.updateSession(sessionIdRef.current, fields)}
+        onExit={onExit}
+      />
     )
   }
 
@@ -311,6 +282,101 @@ export default function SessionView({ store, clientId, tools, onExit }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── End-of-session parent summary + homework share ──
+function filesOfMaterial(m) {
+  if (m.type === 'folder') return (m.items || []).map(i => i.filePath).filter(Boolean)
+  if (m.type === 'image-deck') return (m.imagePaths || []).filter(Boolean)
+  return m.filePath ? [m.filePath] : []
+}
+
+function HomeworkShare({ client, sessionMaterials, allMaterials, onLog, onExit }) {
+  const dateStr = new Date().toISOString().slice(0, 10)
+  // Homework materials may differ from the session — start empty, she picks
+  const [chosen, setChosen] = useState(() => new Set())
+  const [addSearch, setAddSearch] = useState('')
+  const [note, setNote] = useState(
+    `Home Practice — ${client.name} — ${new Date().toLocaleDateString()}\n\n` +
+    `Hi! Here are today's practice materials. \n\n`
+  )
+  const [folderInfo, setFolderInfo] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  // Candidate list: session materials first, plus any searched library material
+  const q = addSearch.trim().toLowerCase()
+  const extra = q ? allMaterials.filter(m => !sessionMaterials.find(s => s.id === m.id) && m.title.toLowerCase().includes(q)) : []
+  const candidates = [...sessionMaterials, ...extra]
+  const chosenMats = allMaterials.filter(m => chosen.has(m.id))
+
+  const toggle = (id) => setChosen(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+  const buildFolder = async () => {
+    setBusy(true)
+    const filePaths = chosenMats.flatMap(filesOfMaterial)
+    const res = await window.api.createHomeworkFolder({ clientName: client.name, dateStr, filePaths })
+    setBusy(false)
+    if (res?.success) {
+      setFolderInfo(res)
+      await window.api.revealInFinder(res.folderPath)
+      onLog({ homeworkNotes: note, homeworkMaterials: chosenMats.map(m => ({ id: m.id, title: m.title })), homeworkFolder: res.folderPath })
+    }
+    return res
+  }
+
+  const fullMessage = () => {
+    const list = chosenMats.map(m => `• ${m.title}`).join('\n')
+    return `${note}${list ? `\nMaterials:\n${list}` : ''}`
+  }
+
+  const shareWhatsApp = async () => {
+    if (chosen.size) await buildFolder()
+    const num = (client.whatsapp || client.phone || '').replace(/[^\d]/g, '')
+    const text = encodeURIComponent(fullMessage())
+    if (num) window.api.openExternal(`https://wa.me/${num}?text=${text}`)
+    else { window.api.copyToClipboard(fullMessage()); alert('No WhatsApp number on file — message copied to clipboard. Attach the files from the folder that just opened in Finder.') }
+  }
+  const shareEmail = async () => {
+    if (chosen.size) await buildFolder()
+    const subject = encodeURIComponent(`Speech Therapy Home Practice — ${client.name}`)
+    window.api.openExternal(`mailto:${encodeURIComponent(client.email || '')}?subject=${subject}&body=${encodeURIComponent(fullMessage())}`)
+  }
+
+  return (
+    <div className="session-shell" style={{ background: '#0f1523' }}>
+      <div className="modal-backdrop">
+        <div className="modal modal-wide">
+          <h2>📤 Send Home Practice</h2>
+          <p className="hw-sub">Pick the materials to send home (they don't have to match the session), add a note, then share.</p>
+
+          <div className="hw-pick-label">Materials to share {chosen.size > 0 && <span className="hw-count">{chosen.size} selected</span>}</div>
+          <div className="hw-picklist">
+            {candidates.map(m => (
+              <label key={m.id} className={`hw-pick ${chosen.has(m.id) ? 'on' : ''}`}>
+                <input type="checkbox" checked={chosen.has(m.id)} onChange={() => toggle(m.id)} />
+                <span className="hw-pick-name">{m.title}</span>
+                {sessionMaterials.find(s => s.id === m.id) && <span className="hw-pick-tag">this session</span>}
+              </label>
+            ))}
+          </div>
+          <input className="session-search" placeholder="🔍 Add another material from the library…" value={addSearch} onChange={e => setAddSearch(e.target.value)} style={{ margin: '8px 0' }} />
+
+          <div className="hw-pick-label">Message</div>
+          <textarea className="notes-textarea" style={{ minHeight: 120, fontSize: 13 }} value={note} onChange={e => setNote(e.target.value)} />
+
+          {folderInfo && <div className="hw-folder-note">✓ Folder ready ({folderInfo.count} file{folderInfo.count!==1?'s':''}) — revealed in Finder. Attach the files to your message.</div>}
+
+          <div className="form-actions hw-actions">
+            <button className="btn-secondary" onClick={onExit}>Skip &amp; Exit</button>
+            <button className="btn-secondary" disabled={!chosen.size || busy} onClick={buildFolder}>📂 Folder &amp; Reveal</button>
+            <button className="btn-secondary" disabled={busy} onClick={shareWhatsApp}>💬 WhatsApp</button>
+            <button className="btn-secondary" disabled={busy} onClick={shareEmail}>✉️ Email</button>
+            <button className="btn-primary" onClick={() => { onLog({ homeworkNotes: note }); onExit() }}>Done</button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

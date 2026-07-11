@@ -263,6 +263,28 @@ ipcMain.handle('shell:open-external', (_, url) => {
   return true
 })
 
+// Reveal a file/folder in Finder
+ipcMain.handle('shell:reveal', (_, p) => { try { shell.showItemInFolder(p) } catch {} return true })
+
+// Create a dated homework folder for a client with copies of the chosen files
+ipcMain.handle('homework:create-folder', async (_, { clientName, dateStr, filePaths }) => {
+  try {
+    const base = path.join(os.homedir(), 'Documents', 'Speech Therapy Homework')
+    const safeName = (clientName || 'Client').replace(/[\/:*?"<>|]/g, '-').trim()
+    const dest = path.join(base, `${safeName} - ${dateStr}`)
+    fs.mkdirSync(dest, { recursive: true })
+    let count = 0
+    for (const fp of (filePaths || [])) {
+      try {
+        if (fp && fs.existsSync(fp)) { fs.copyFileSync(fp, path.join(dest, path.basename(fp))); count++ }
+      } catch {}
+    }
+    return { success: true, folderPath: dest, count }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+
 // ── Zoom API (Server-to-Server OAuth) ──────────────────────────────────
 const https = require('https')
 
