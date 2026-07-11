@@ -98,6 +98,8 @@ export default function FinderView({ store }) {
   const rootRef = useRef(null)
   const anchorRef = useRef(null)          // last-clicked key, for Shift-range selection
   const visibleKeysRef = useRef([])       // ordered keys currently on screen
+  const [marquee, setMarquee] = useState(null)   // rubber-band rectangle {left,top,w,h}
+  const marqueeMoved = useRef(false)             // did the marquee actually drag?
 
   const folders = store.folders || []
   const currentFolderId = path.length ? path[path.length - 1] : null
@@ -184,6 +186,45 @@ export default function FinderView({ store }) {
   }
   const clearSelect = () => setSelected(new Set())
 
+  // Marquee (rubber-band) selection — click empty space and drag a box over items, like Finder
+  const onBodyMouseDown = (e) => {
+    if (e.button !== 0 || !rootRef.current) return
+    if (e.target.closest('.fx-item') || e.target.closest('button, input, select, a')) return
+    const additive = e.metaKey || e.ctrlKey || e.shiftKey
+    const baseSel = additive ? new Set(selected) : new Set()
+    if (!additive) setSelected(new Set())
+    const startX = e.clientX, startY = e.clientY
+    marqueeMoved.current = false
+
+    const onMove = (me) => {
+      const x = Math.min(startX, me.clientX), y = Math.min(startY, me.clientY)
+      const w = Math.abs(me.clientX - startX), h = Math.abs(me.clientY - startY)
+      if (w + h > 4) marqueeMoved.current = true
+      const bodyRect = rootRef.current.getBoundingClientRect()
+      setMarquee({ left: x - bodyRect.left, top: y - bodyRect.top, w, h })
+      const box = { left: x, top: y, right: x + w, bottom: y + h }
+      const hits = new Set(baseSel)
+      rootRef.current.querySelectorAll('.fx-item').forEach(el => {
+        const r = el.getBoundingClientRect()
+        const hit = !(r.right < box.left || r.left > box.right || r.bottom < box.top || r.top > box.bottom)
+        if (hit && el.dataset.key) hits.add(el.dataset.key)
+      })
+      setSelected(hits)
+    }
+    const onUp = () => {
+      setMarquee(null)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+  // Only clear on a genuine empty click (not the tail of a marquee drag)
+  const onBodyClick = (e) => {
+    if (marqueeMoved.current) { marqueeMoved.current = false; return }
+    if (!e.target.closest('.fx-item') && !e.target.closest('button')) clearSelect()
+  }
+
   const deleteKeys = (keys) => {
     const n = keys.length
     if (!n) return
@@ -264,7 +305,7 @@ export default function FinderView({ store }) {
     const count = materialsIn(f.id).length + childFolders(f.id).length
     const sel = selected.has(key)
     return (
-      <div key={key} draggable
+      <div key={key} draggable data-key={key}
         className={`fx-item fx-folder ${view} ${sel ? 'sel' : ''} ${dragOverFolder === f.id ? 'drop-target' : ''}`}
         onClick={e => { e.stopPropagation(); toggleSelect(e, key) }}
         onDoubleClick={() => { clearSelect(); setPath(p => [...p, f.id]) }}
@@ -290,7 +331,7 @@ export default function FinderView({ store }) {
     const sel = selected.has(key)
     const t = thumbFor(m)
     return (
-      <div key={key} draggable
+      <div key={key} draggable data-key={key}
         className={`fx-item fx-material ${view} ${sel ? 'sel' : ''}`}
         onClick={e => { e.stopPropagation(); toggleSelect(e, key) }}
         onDoubleClick={() => openPreview(m)}
@@ -362,11 +403,13 @@ export default function FinderView({ store }) {
       {/* Content area — the whole thing is a drop target */}
       <div ref={rootRef}
         className={`fx-body ${view} ${rootDragOver ? 'root-drop' : ''} ${importing ? 'importing' : ''}`}
-        onClick={clearSelect}
+        onMouseDown={onBodyMouseDown}
+        onClick={onBodyClick}
         onDragOver={e => { e.preventDefault(); if (!e.dataTransfer.getData('text/finder-keys')) setRootDragOver(true) }}
         onDragLeave={e => { if (!rootRef.current?.contains(e.relatedTarget)) setRootDragOver(false) }}
         onDrop={onRootDrop}>
 
+        {marquee && <div className="fx-marquee" style={{ left: marquee.left, top: marquee.top, width: marquee.w, height: marquee.h }} />}
         {importing && <div className="fx-importing-badge">⏳ Importing…</div>}
 
         {searchHits ? (
