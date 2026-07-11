@@ -1,13 +1,13 @@
 import React from 'react'
-import FinderView from '../components/FinderView'
+import Workspace from '../components/Workspace'
 
 export default function MaterialsPage({ store }) {
   return (
     <div className="page page-wide materials-page">
       <div className="page-header">
-        <h1>Materials Library</h1>
+        <h1>Materials &amp; Clients</h1>
       </div>
-      <FinderView store={store} />
+      <Workspace store={store} />
     </div>
   )
 }

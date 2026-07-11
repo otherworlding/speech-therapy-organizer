@@ -318,8 +318,61 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .hw-folder-note { background: #dcf5e7; color: #147a43; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-top: 10px; }
 .hw-actions { flex-wrap: wrap; }
 
+/* ── Dual-pane workspace (clients | materials) ── */
+.materials-page { max-width: 1400px; }
+.workspace { display: flex; gap: 14px; align-items: flex-start; }
+.ws-clients { width: 340px; flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; max-height: calc(100vh - 140px); overflow-y: auto; position: sticky; top: 0; }
+.ws-materials { flex: 1; min-width: 0; }
+.ws-pane-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ws-hint-inline { font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-muted); opacity: 0.7; }
+
+/* Client chips */
+.ws-chips { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.ws-chip { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 9px; border: 2px solid transparent; cursor: pointer; transition: background 0.12s, border-color 0.12s, transform 0.1s; }
+.ws-chip:hover { background: var(--bg); }
+.ws-chip.selected { background: #eef4ff; border-color: var(--primary); }
+.ws-chip.drop-glow { border-color: var(--success); background: #dcf5e7; transform: scale(1.02); box-shadow: 0 0 0 3px rgba(52,201,122,0.25); }
+.ws-chip-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.ws-chip-name { flex: 1; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-chip-count { font-size: 11px; color: var(--text-muted); background: var(--bg); border-radius: 10px; padding: 1px 8px; }
+.ws-empty-hint, .ws-none, .ws-drop-hint { font-size: 12px; color: var(--text-muted); }
+.ws-none { padding: 4px 2px 8px; }
+
+/* Client detail */
+.ws-detail { border-top: 1px solid var(--border); padding-top: 12px; }
+.ws-section-title { font-size: 12px; font-weight: 700; color: var(--text); margin: 14px 0 8px; display: flex; align-items: center; gap: 6px; }
+.ws-section-title:first-child { margin-top: 0; }
+.ws-count { font-size: 11px; color: var(--text-muted); background: var(--bg); border-radius: 10px; padding: 1px 7px; }
+.ws-assigned { display: flex; flex-direction: column; gap: 3px; border: 1.5px dashed var(--border); border-radius: 9px; padding: 6px; min-height: 54px; transition: border-color 0.12s, background 0.12s; }
+.ws-assigned.drop-glow { border-color: var(--success); background: #dcf5e7; }
+.ws-drop-hint { padding: 12px 8px; text-align: center; }
+.ws-assigned-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
+.ws-assigned-item:hover { background: var(--bg); }
+.ws-mini-thumb { width: 26px; height: 26px; border-radius: 4px; overflow: hidden; flex-shrink: 0; background: #eef0f6; }
+.ws-mini-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.ws-mini-icon { font-size: 18px; width: 26px; text-align: center; flex-shrink: 0; }
+.ws-assigned-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-unassign { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 12px; opacity: 0; }
+.ws-assigned-item:hover .ws-unassign { opacity: 1; }
+
+/* Weeks / sessions / homework */
+.ws-week { margin-bottom: 6px; }
+.ws-week-header { font-size: 11px; font-weight: 700; color: var(--text-muted); padding: 4px 2px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.ws-row { display: flex; gap: 8px; padding: 4px 2px; align-items: flex-start; }
+.ws-row-date { font-size: 12px; color: var(--text-muted); white-space: nowrap; min-width: 72px; }
+.ws-row-mats { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ws-chip-mat { font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 2px 8px; cursor: pointer; color: var(--text); }
+.ws-chip-mat:hover { border-color: var(--primary); color: var(--primary); }
+.ws-chip-mat:disabled { opacity: 0.5; cursor: default; }
+.ws-hw-name { font-size: 11px; background: #f3ecff; color: #6b3fd4; border-radius: 8px; padding: 2px 8px; }
+.ws-reveal { font-size: 11px; background: none; border: 1px solid var(--border); border-radius: 8px; padding: 2px 8px; cursor: pointer; color: var(--primary); }
+.ws-none-inline { font-size: 11px; color: var(--text-muted); }
+
+/* While dragging a material, make the client targets pop */
+.ws-dragging .ws-chip { border-color: rgba(52,201,122,0.4); }
+.ws-dragging .ws-assigned { border-color: rgba(52,201,122,0.5); }
+
 /* ── Finder (unified materials view) ── */
-.materials-page { max-width: 1100px; }
 .finder { display: flex; flex-direction: column; gap: 10px; }
 .fx-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .fx-crumbs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
