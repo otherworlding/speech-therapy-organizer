@@ -139,6 +139,17 @@ export default function FinderView({ store }) {
   }
   const clearSelect = () => setSelected(new Set())
 
+  const deleteKeys = (keys) => {
+    const n = keys.length
+    if (!n) return
+    const hasFolder = keys.some(k => k.startsWith('f:'))
+    if (window.confirm(`Delete ${n} item${n > 1 ? 's' : ''}?${hasFolder ? ' Folders remove everything inside them.' : ''}`)) {
+      keys.forEach(k => k.startsWith('m:') ? store.deleteMaterial(k.slice(2)) : store.deleteFolder(k.slice(2)))
+      clearSelect()
+    }
+  }
+  const deleteSelected = () => deleteKeys([...selected])
+
   // ── Move selected (or a dragged key set) into a folder ──
   const moveInto = (keys, folderId) => {
     const matIds = keys.filter(k => k.startsWith('m:')).map(k => k.slice(2))
@@ -158,12 +169,7 @@ export default function FinderView({ store }) {
       if (mod && e.key === 'c' && selected.size) { setClipboard({ keys: [...selected] }); setStatus(`Copied ${selected.size} item${selected.size>1?'s':''} — ⌘V to paste into a folder`); e.preventDefault() }
       else if (mod && e.key === 'v' && clipboard?.keys?.length) { moveInto(clipboard.keys, currentFolderId); setStatus(`Pasted ${clipboard.keys.length} item${clipboard.keys.length>1?'s':''} here`); setTimeout(()=>setStatus(null),3000); e.preventDefault() }
       else if ((e.key === 'Backspace' || e.key === 'Delete') && selected.size) {
-        const n = selected.size
-        if (window.confirm(`Delete ${n} selected item${n>1?'s':''}? Folders remove their contents too.`)) {
-          selected.forEach(k => k.startsWith('m:') ? store.deleteMaterial(k.slice(2)) : store.deleteFolder(k.slice(2)))
-          clearSelect()
-        }
-        e.preventDefault()
+        deleteSelected(); e.preventDefault()
       } else if (e.key === 'Escape') { clearSelect() }
     }
     window.addEventListener('keydown', onKey)
@@ -216,6 +222,7 @@ export default function FinderView({ store }) {
         onDragOver={e => { e.preventDefault(); setDragOverFolder(f.id) }}
         onDragLeave={() => setDragOverFolder(d => d === f.id ? null : d)}
         onDrop={e => onFolderDrop(e, f)}>
+        <button className="fx-del-x" title="Delete folder" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>✕</button>
         <span className="fx-icon" style={{ color: f.color }}>📁</span>
         {renaming === f.id
           ? <input className="fx-rename" autoFocus defaultValue={f.name}
@@ -239,6 +246,7 @@ export default function FinderView({ store }) {
         onDoubleClick={() => openPreview(m)}
         onDragStart={e => onItemDragStart(e, key)}>
         {m.colorLabel && <span className="fx-color-dot" style={{ background: m.colorLabel }} />}
+        <button className="fx-del-x" title="Delete" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>✕</button>
         {t.img
           ? <span className="fx-thumb"><img src={`file://${t.img}`} alt="" /></span>
           : <span className="fx-icon">{t.icon}</span>}
@@ -286,6 +294,17 @@ export default function FinderView({ store }) {
       </div>
 
       {status && <div className="fx-status">{status}</div>}
+
+      {/* Selection action bar */}
+      {selected.size > 0 && (
+        <div className="fx-selbar">
+          <span className="fx-selbar-count">{selected.size} selected</span>
+          <div className="fx-selbar-actions">
+            <button className="btn-danger fx-del-btn" onClick={deleteSelected}>🗑 Delete</button>
+            <button className="btn-secondary" onClick={clearSelect}>Deselect</button>
+          </div>
+        </div>
+      )}
 
       {/* Content area — the whole thing is a drop target */}
       <div ref={rootRef}
@@ -388,6 +407,7 @@ function MaterialInspector({ material, store, onClose }) {
         <option value="">Choose client…</option>
         {store.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select>
+      <button className="btn-danger fx-insp-delete" onClick={() => { if (window.confirm(`Delete “${material.title}”?`)) { store.deleteMaterial(material.id); onClose() } }}>🗑 Delete material</button>
     </div>
   )
 }
