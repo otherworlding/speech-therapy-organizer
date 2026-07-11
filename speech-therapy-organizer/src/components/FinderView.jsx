@@ -1,6 +1,39 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import * as pdfjsLib from 'pdfjs-dist'
 import FileViewer from './FileViewer'
 import { isExternalFile, externalLabel } from '../utils/fileTypes'
+
+// First-page PDF thumbnails, rendered once and cached by file path
+const pdfThumbCache = new Map()
+function PdfThumb({ filePath }) {
+  const [url, setUrl] = useState(() => pdfThumbCache.get(filePath) || null)
+  useEffect(() => {
+    if (url || !filePath || !window.api) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const buf = await window.api.readFileBinary(filePath)
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise
+        const page = await pdf.getPage(1)
+        const base = page.getViewport({ scale: 1 })
+        // Target ~220px wide so tiny or huge pages both thumbnail cleanly
+        const scale = Math.min(220 / base.width, 1.5)
+        const vp = page.getViewport({ scale })
+        const w = Math.max(1, Math.round(vp.width)), h = Math.max(1, Math.round(vp.height))
+        if (w < 8 || h < 8) return   // degenerate page — keep the 📄 icon
+        const canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7)
+        if (!cancelled && dataUrl.startsWith('data:image')) { pdfThumbCache.set(filePath, dataUrl); setUrl(dataUrl) }
+      } catch {}
+    })()
+    return () => { cancelled = true }
+  }, [filePath])
+  return url
+    ? <span className="fx-thumb"><img src={url} alt="" /></span>
+    : <span className="fx-icon">📄</span>
+}
 
 const FOLDER_COLORS = ['#4f8ef7', '#34c97a', '#f7a84f', '#c97adb', '#f75f9f', '#3ec9c9', '#8fd14f', '#e07c1a', '#888888']
 const IMG_EXT = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i
@@ -41,6 +74,7 @@ function thumbFor(m) {
   }
   if (m.type === 'image-deck' && m.imagePaths?.length) return { img: m.imagePaths[0] }
   if (m.filePath && IMG_EXT.test(m.filePath)) return { img: m.filePath }
+  if (extOf(m.filePath) === 'pdf') return { pdf: m.filePath }
   return { icon: FILE_ICONS[extOf(m.filePath)] || '📎' }
 }
 
@@ -247,9 +281,11 @@ export default function FinderView({ store }) {
         onDragStart={e => onItemDragStart(e, key)}>
         {m.colorLabel && <span className="fx-color-dot" style={{ background: m.colorLabel }} />}
         <button className="fx-del-x" title="Delete" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>✕</button>
-        {t.img
-          ? <span className="fx-thumb"><img src={`file://${t.img}`} alt="" /></span>
-          : <span className="fx-icon">{t.icon}</span>}
+        {t.pdf
+          ? <PdfThumb filePath={t.pdf} />
+          : t.img
+            ? <span className="fx-thumb"><img src={`file://${t.img}`} alt="" /></span>
+            : <span className="fx-icon">{t.icon}</span>}
         <span className="fx-name">{m.title}</span>
         <span className="fx-sub">
           {m.openExternal ? `↗ ${externalLabel(m.filePath)}` : [m.category, ...(m.tags||[])].filter(Boolean).slice(0,2).join(' · ')}
