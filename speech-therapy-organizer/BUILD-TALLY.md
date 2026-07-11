@@ -5,20 +5,27 @@ track it, offset it, and learn to code more efficiently. Measured metrics are
 reliable; the energy (kWh) figures are **honest estimates with wide error bars**,
 not precise measurements.
 
-_Last updated: 2026-07-10_
+_Last updated: 2026-07-11_
 
 ## Measured facts
 
 | Metric | Value |
 |---|---|
-| Development span | 2026-06-18 → 2026-07-10 (~22 calendar days, part-time) |
-| Feature commits | 13 |
-| Auto-save commits | 10 |
-| Hand-written source | ~4,900 lines across 30 files (JSX / JS / CSS) |
-| Full DMG builds run | ~30–40 (both Intel + Apple Silicon across feature rounds + tests) |
-| Renderer-only builds | ~20 |
+| Development span | 2026-06-18 → 2026-07-11 (~23 calendar days, part-time) |
+| Feature commits | 19 |
+| Hand-written source | ~5,600 lines across 32 files (JSX / JS / CSS) |
+| Full DMG builds run | ~55–65 (both Intel + Apple Silicon across feature rounds + tests) |
+| Renderer-only builds | ~40 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 2 (2026-07-11): Finder rebuild + dual-pane workspace
+Materials rebuilt as a Finder (icon/list, recursive folder import, thumbnails,
+sort, delete, copy/paste), viewer upgrades (continuous PDF scroll, zoom),
+homework share, and a two-pane clients+materials workspace with drag-to-assign.
+Biggest footprint cost this round: ~8 arm64 test rebuilds driven by iterative
+last-minute additions. The pre-final-build check-in and single-arch-iteration
+rules kept the dual Intel build to once at the end.
 
 ## Compute / energy estimate
 
