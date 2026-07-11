@@ -63,6 +63,29 @@ export function useStore() {
       )
     })
   }
+  // Assign several materials to a client at once (deduped)
+  const assignMaterials = (clientId, materialIds) => {
+    persist({
+      ...data,
+      clients: data.clients.map(c =>
+        c.id === clientId ? { ...c, materialIds: Array.from(new Set([...(c.materialIds || []), ...materialIds])) } : c
+      )
+    })
+  }
+  // Copy or move a client's whole assigned material list to another client
+  const transferClientMaterials = (fromId, toId, { move = false } = {}) => {
+    const from = data.clients.find(c => c.id === fromId)
+    if (!from) return
+    const ids = from.materialIds || []
+    persist({
+      ...data,
+      clients: data.clients.map(c => {
+        if (c.id === toId) return { ...c, materialIds: Array.from(new Set([...(c.materialIds || []), ...ids])) }
+        if (move && c.id === fromId) return { ...c, materialIds: [] }
+        return c
+      })
+    })
+  }
 
   // ── Materials ─────────────────────────────────────────────────────────
   const addMaterial = (material) => {
@@ -78,6 +101,36 @@ export function useStore() {
   }
   const updateMaterial = (id, updates) => {
     persist({ ...data, materials: data.materials.map(m => m.id === id ? { ...m, ...updates } : m) })
+  }
+  // Move many materials into a folder (or to root when folderId is null) in one write
+  const moveMaterials = (materialIds, folderId) => {
+    const set = new Set(materialIds)
+    persist({ ...data, materials: data.materials.map(m => set.has(m.id) ? { ...m, folderId } : m) })
+  }
+  // Bulk-import a pre-shaped nested tree { name, color?, materials:[...], folders:[...] }.
+  // Assigns ids, wires parentId/folderId, and persists once. Returns new material ids.
+  const importTree = (node, parentFolderId = null) => {
+    const newFolders = []
+    const newMaterials = []
+    const walk = (n, parentId) => {
+      const fid = uuidv4()
+      newFolders.push({ id: fid, name: n.name, color: n.color || '#4f8ef7', parentId })
+      for (const mat of (n.materials || [])) {
+        newMaterials.push({ id: uuidv4(), tags: [], createdAt: new Date().toISOString(), ...mat, folderId: fid })
+      }
+      for (const sub of (n.folders || [])) walk(sub, fid)
+    }
+    walk(node, parentFolderId)
+    setData(prev => {
+      const next = {
+        ...prev,
+        folders: [...(prev.folders || []), ...newFolders],
+        materials: [...prev.materials, ...newMaterials],
+      }
+      if (isElectron) window.api.saveData(next); else localSave(next)
+      return next
+    })
+    return newMaterials.map(m => m.id)
   }
   const deleteMaterial = (id) => {
     persist({
@@ -141,15 +194,33 @@ export function useStore() {
   const updateFolder = (id, updates) => {
     persist({ ...data, folders: (data.folders || []).map(f => f.id === id ? { ...f, ...updates } : f) })
   }
-  const deleteFolder = (id) => {
+  // Move a folder's contents up one level, then remove the folder (keeps materials)
+  const dissolveFolder = (id) => {
     const folders = data.folders || []
-    const target = folders.find(f => f.id === id)
-    const parent = target?.parentId || null
-    // Children and contents move up one level rather than being lost
+    const parent = folders.find(f => f.id === id)?.parentId || null
     persist({
       ...data,
       folders: folders.filter(f => f.id !== id).map(f => f.parentId === id ? { ...f, parentId: parent } : f),
       materials: data.materials.map(m => m.folderId === id ? { ...m, folderId: parent } : m),
+    })
+  }
+  // Delete a folder and everything inside it (nested folders + their materials), Finder-style
+  const deleteFolder = (id) => {
+    const folders = data.folders || []
+    const doomed = new Set([id])
+    let grew = true
+    while (grew) {
+      grew = false
+      for (const f of folders) {
+        if (f.parentId && doomed.has(f.parentId) && !doomed.has(f.id)) { doomed.add(f.id); grew = true }
+      }
+    }
+    const deadMaterialIds = new Set(data.materials.filter(m => doomed.has(m.folderId)).map(m => m.id))
+    persist({
+      ...data,
+      folders: folders.filter(f => !doomed.has(f.id)),
+      materials: data.materials.filter(m => !deadMaterialIds.has(m.id)),
+      clients: data.clients.map(c => ({ ...c, materialIds: (c.materialIds || []).filter(mid => !deadMaterialIds.has(mid)) })),
     })
   }
 
@@ -181,11 +252,12 @@ export function useStore() {
     folders: data.folders || [],
     loaded,
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
-    addMaterial, updateMaterial, deleteMaterial,
+    assignMaterials, transferClientMaterials,
+    addMaterial, updateMaterial, deleteMaterial, moveMaterials, importTree,
     addSession, updateSession, deleteSession,
     addGoal, updateGoal, deleteGoal, addGoalProgress,
     addAppointment, updateAppointment, deleteAppointment,
-    addFolder, updateFolder, deleteFolder,
+    addFolder, updateFolder, deleteFolder, dissolveFolder,
     updateSettings,
   }
 }

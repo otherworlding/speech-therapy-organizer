@@ -78,13 +78,14 @@ export default function SessionView({ store, clientId, tools, onExit }) {
     })
   }
 
-  // Keyboard navigation: ← / → move between materials (great in fullscreen); Esc exits fullscreen
+  // Keyboard: ← / → move between materials; ↑ / ↓ turn pages inside a document
+  // (handled by the PDF viewer). Esc exits fullscreen.
   useEffect(() => {
     const onKey = (e) => {
       const tag = (e.target.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { step(1); e.preventDefault() }
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { step(-1); e.preventDefault() }
+      if (e.key === 'ArrowRight') { step(1); e.preventDefault() }
+      else if (e.key === 'ArrowLeft') { step(-1); e.preventDefault() }
       else if (e.key === 'Escape' && fullscreen) { setFullscreen(false) }
     }
     window.addEventListener('keydown', onKey)

@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('api', {
   copyToLibrary: (srcPath) => ipcRenderer.invoke('file:copy-to-library', srcPath),
   readFileBinary: (filePath) => ipcRenderer.invoke('file:read-binary', filePath),
   fileExists: (filePath) => ipcRenderer.invoke('file:exists', filePath),
+  importFolderTree: (folderPath) => ipcRenderer.invoke('folder:import-tree', folderPath),
   importFolderAll: (folderPath) => ipcRenderer.invoke('folder:import-all', folderPath),
   importFolderDeck: (folderPath) => ipcRenderer.invoke('folder:import-deck', folderPath),
   pickFolder: () => ipcRenderer.invoke('folder:pick'),

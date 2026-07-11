@@ -9,6 +9,7 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
   const [mainTab, setMainTab] = useState('materials') // materials | goals | history
   const [catFilter, setCatFilter] = useState('All')
   const [showAssignModal, setShowAssignModal] = useState(false)
+  const [showTransfer, setShowTransfer] = useState(false)
   const [search, setSearch] = useState('')
   const [assignSearch, setAssignSearch] = useState('')
   const [editNotes, setEditNotes] = useState(false)
@@ -52,6 +53,9 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
         <div className="client-header-actions">
           <button className="btn-start-session-large" onClick={() => onStartSession(clientId)}>▶ Start Session</button>
           <button className="btn-primary" onClick={() => setShowAssignModal(true)}>+ Assign Material</button>
+          {store.clients.length > 1 && (
+            <button className="btn-secondary" onClick={() => setShowTransfer(true)}>⇄ From another client</button>
+          )}
         </div>
       </div>
 
@@ -130,6 +134,14 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
         </div>
       )}
 
+      {/* Transfer from another client */}
+      {showTransfer && (
+        <TransferModal
+          store={store} targetClient={client}
+          onClose={() => setShowTransfer(false)}
+        />
+      )}
+
       {/* Assign modal */}
       {showAssignModal && (
         <div className="modal-backdrop" onClick={()=>setShowAssignModal(false)}>
@@ -156,4 +168,38 @@ function getAge(dob) {
   let age = now.getFullYear() - dob.getFullYear()
   if (now.getMonth() < dob.getMonth() || (now.getMonth()===dob.getMonth() && now.getDate()<dob.getDate())) age--
   return age
+}
+
+// Copy or move another client's whole assigned material list into this client
+function TransferModal({ store, targetClient, onClose }) {
+  const others = store.clients.filter(c => c.id !== targetClient.id)
+  const [fromId, setFromId] = useState(others[0]?.id || '')
+  const from = store.clients.find(c => c.id === fromId)
+  const count = from?.materialIds?.length || 0
+  const run = (move) => {
+    store.transferClientMaterials(fromId, targetClient.id, { move })
+    onClose()
+  }
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <h2>Bring materials into {targetClient.name}</h2>
+        <label>From client
+          <select value={fromId} onChange={e => setFromId(e.target.value)}>
+            {others.map(c => <option key={c.id} value={c.id}>{c.name} ({c.materialIds?.length || 0})</option>)}
+          </select>
+        </label>
+        <p className="settings-note" style={{ marginTop: 8 }}>
+          {count === 0
+            ? 'That client has no materials assigned.'
+            : `Copy adds ${from.name}'s ${count} material${count>1?'s':''} to ${targetClient.name} (kept on both). Move transfers them and clears ${from.name}'s list.`}
+        </p>
+        <div className="form-actions">
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary" disabled={!count} onClick={() => run(true)}>Move</button>
+          <button className="btn-primary" disabled={!count} onClick={() => run(false)}>Copy</button>
+        </div>
+      </div>
+    </div>
+  )
 }

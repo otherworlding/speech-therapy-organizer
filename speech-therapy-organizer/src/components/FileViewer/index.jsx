@@ -25,13 +25,16 @@ function getType(material) {
   return 'unknown'
 }
 
+const ZOOMABLE = new Set(['pdf', 'image'])
+
 export default function FileViewer({ material, isFullscreen, onToggleFullscreen }) {
   const [pageInfo, setPageInfo] = useState(null)
   const [apps, setApps] = useState({ keynote: false, powerpoint: false, libreoffice: false })
+  const [zoom, setZoom] = useState(1)
   const videoRef = useRef(null)
   const type = material ? getType(material) : 'none'
 
-  useEffect(() => { setPageInfo(null) }, [material?.id])
+  useEffect(() => { setPageInfo(null); setZoom(1) }, [material?.id])
   useEffect(() => {
     window.api?.checkApps?.().then(a => a && setApps(a))
   }, [])
@@ -50,8 +53,16 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen 
       <div className="viewer-topbar">
         <span className="viewer-title">{material.title}</span>
         {pageInfo && <span className="viewer-pageinfo">{pageInfo}</span>}
+        {ZOOMABLE.has(type) && !material.openExternal && (
+          <div className="viewer-zoom">
+            <span className="viewer-zoom-mag" title="Zoom">🔍</span>
+            <input type="range" min="0.5" max="3" step="0.1" value={zoom}
+              onChange={e => setZoom(parseFloat(e.target.value))} className="viewer-zoom-slider" />
+            <button className="viewer-zoom-reset" onClick={() => setZoom(1)} title="Reset zoom">{Math.round(zoom * 100)}%</button>
+          </div>
+        )}
         <button className="viewer-fs-btn" onClick={onToggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
-          {isFullscreen ? '⛶' : '⛶'}
+          ⛶
         </button>
       </div>
 
@@ -90,11 +101,12 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen 
             </div>
           </div>
         )}
-        {!material.openExternal && type === 'pdf' && <PdfViewer filePath={material.filePath} onPageInfo={handlePageInfo} />}
+        {!material.openExternal && type === 'pdf' && <PdfViewer filePath={material.filePath} onPageInfo={handlePageInfo} zoom={zoom} />}
         {!material.openExternal && type === 'pptx' && <PptxViewer filePath={material.filePath} onPageInfo={handlePageInfo} />}
         {!material.openExternal && type === 'image' && (
-          <div className="image-viewer">
-            <img src={`file://${material.filePath}`} alt={material.title} className="viewer-image" />
+          <div className="image-viewer" style={{ overflow: zoom > 1 ? 'auto' : 'hidden' }}>
+            <img src={`file://${material.filePath}`} alt={material.title} className="viewer-image"
+              style={{ transform: `scale(${zoom})`, transformOrigin: 'center top' }} />
           </div>
         )}
         {!material.openExternal && type === 'deck' && (

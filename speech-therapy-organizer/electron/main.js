@@ -118,6 +118,43 @@ ipcMain.handle('file:read-binary', (_, filePath) => {
 // Check file exists
 ipcMain.handle('file:exists', (_, filePath) => fs.existsSync(filePath))
 
+// Recursively import a dropped folder, preserving its full subfolder structure.
+// Copies files into a mirrored tree under the library and returns a nested
+// { name, files:[{filename,filePath}], folders:[...] } tree for the renderer.
+ipcMain.handle('folder:import-tree', async (_, srcFolder) => {
+  const libRoot = path.join(DATA_DIR, 'files', 'imported_' + Date.now())
+  fs.mkdirSync(libRoot, { recursive: true })
+
+  function walk(srcDir, destDir) {
+    const node = { name: path.basename(srcDir), files: [], folders: [] }
+    let entries
+    try { entries = fs.readdirSync(srcDir, { withFileTypes: true }) } catch { return node }
+    entries.sort((a, b) => a.name.localeCompare(b.name))
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue           // skip .DS_Store etc.
+      const srcPath = path.join(srcDir, entry.name)
+      if (entry.isDirectory()) {
+        const childDest = path.join(destDir, entry.name)
+        fs.mkdirSync(childDest, { recursive: true })
+        node.folders.push(walk(srcPath, childDest))
+      } else if (entry.isFile()) {
+        const destPath = path.join(destDir, entry.name)
+        try {
+          fs.copyFileSync(srcPath, destPath)
+          node.files.push({ filename: entry.name, filePath: destPath })
+        } catch {}
+      }
+    }
+    return node
+  }
+
+  try {
+    return { success: true, tree: walk(srcFolder, libRoot) }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+
 // Import ALL files in a folder as a grouped folder material
 ipcMain.handle('folder:import-all', async (_, srcFolder) => {
   const libDir = path.join(DATA_DIR, 'files')
