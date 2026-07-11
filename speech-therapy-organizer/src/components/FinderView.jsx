@@ -94,6 +94,7 @@ export default function FinderView({ store }) {
   const [status, setStatus] = useState(null)         // last drop/import message
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [renaming, setRenaming] = useState(null)     // folder id
+  const [inspectId, setInspectId] = useState(null)   // material id whose details panel is open
   const rootRef = useRef(null)
 
   const folders = store.folders || []
@@ -239,8 +240,9 @@ export default function FinderView({ store }) {
 
   const hereFolders = childFolders(currentFolderId)
   const hereMaterials = materialsIn(currentFolderId)
-  const selMaterial = selected.size === 1 && [...selected][0].startsWith('m:')
-    ? store.materials.find(m => m.id === [...selected][0].slice(2)) : null
+  // Details/tagging panel is opened explicitly via the ⓘ button — NOT on selection,
+  // so selecting/dragging a material never gets blocked by the panel.
+  const inspectMaterial = inspectId ? store.materials.find(m => m.id === inspectId) : null
 
   // ── Renderers for a folder + a material (shared by icon & list) ──
   const folderNode = (f) => {
@@ -280,6 +282,7 @@ export default function FinderView({ store }) {
         onDoubleClick={() => openPreview(m)}
         onDragStart={e => onItemDragStart(e, key)}>
         {m.colorLabel && <span className="fx-color-dot" style={{ background: m.colorLabel }} />}
+        <button className="fx-info-i" title="Details & tags" onClick={e => { e.stopPropagation(); setInspectId(m.id) }}>ⓘ</button>
         <button className="fx-del-x" title="Delete" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>✕</button>
         {t.pdf
           ? <PdfThumb filePath={t.pdf} />
@@ -375,8 +378,8 @@ export default function FinderView({ store }) {
       </div>
 
       {/* Selected inspector (optional tagging/labels/assign) */}
-      {selMaterial && (
-        <MaterialInspector key={selMaterial.id} material={selMaterial} store={store} onClose={clearSelect} />
+      {inspectMaterial && (
+        <MaterialInspector key={inspectMaterial.id} material={inspectMaterial} store={store} onClose={() => setInspectId(null)} />
       )}
 
       {/* New folder modal */}

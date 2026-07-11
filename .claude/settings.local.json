@@ -95,7 +95,8 @@
       "Bash(open /Users/otherworlding/Desktop/DropTest-SpeechApp)",
       "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Welcome.pdf)",
       "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/artic-cards.pdf)",
-      "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/R-sounds/r-words.pdf)"
+      "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/R-sounds/r-words.pdf)",
+      "Bash(awk '{print $5, $NF}')"
     ]
   }
 }

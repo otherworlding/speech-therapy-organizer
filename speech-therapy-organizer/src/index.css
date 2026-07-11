@@ -399,11 +399,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .fx-selbar-actions { display: flex; gap: 8px; }
 .fx-del-btn { padding: 6px 14px; font-size: 13px; }
 
-/* Per-tile delete (✕), visible on hover */
-.fx-del-x { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(247,95,95,0.9); color: white; font-size: 11px; cursor: pointer; z-index: 3; opacity: 0; transition: opacity 0.12s; display: flex; align-items: center; justify-content: center; }
-.fx-item:hover .fx-del-x { opacity: 1; }
-.fx-item.list .fx-del-x { position: static; opacity: 0.4; margin-left: auto; }
-.fx-item.list:hover .fx-del-x { opacity: 1; }
+/* Per-tile hover buttons: ⓘ details and ✕ delete */
+.fx-del-x, .fx-info-i { position: absolute; top: 5px; width: 22px; height: 22px; border-radius: 50%; border: none; color: white; font-size: 11px; cursor: pointer; z-index: 3; opacity: 0; transition: opacity 0.12s; display: flex; align-items: center; justify-content: center; }
+.fx-del-x { right: 5px; background: rgba(247,95,95,0.92); }
+.fx-info-i { right: 31px; background: rgba(79,142,247,0.92); font-size: 13px; }
+.fx-item:hover .fx-del-x, .fx-item:hover .fx-info-i { opacity: 1; }
+.fx-item.list .fx-del-x { top: 50%; transform: translateY(-50%); right: 8px; }
+.fx-item.list .fx-info-i { top: 50%; transform: translateY(-50%); right: 34px; }
 .fx-insp-delete { margin-top: 6px; width: 100%; }
 
 .fx-body { position: relative; min-height: 60vh; border: 2px dashed transparent; border-radius: 12px; transition: border-color 0.12s, background 0.12s; padding: 6px; }
