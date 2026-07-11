@@ -80,7 +80,12 @@
       "Read(//Volumes/**)",
       "Bash(hdiutil detach *)",
       "Bash(awk '{print $5, $9}')",
-      "Bash(awk '{print $1}')"
+      "Bash(awk '{print $1}')",
+      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/DropTest/top.pdf)",
+      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/DropTest/Articulation/artic.pdf)",
+      "Bash(sips -s format pdf /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/dot.png --out /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/DropTest/Articulation/R-sounds/rword.pdf)",
+      "Bash(find /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/DropTest -not -path */.*)",
+      "Bash(python3 -c 'import json; d=json.load\\(open\\('\\\\''/Users/otherworlding/Library/Application Support/SpeechTherapyOrganizer/data.json'\\\\''\\)\\); print\\('\\\\''folders:'\\\\'', d.get\\('\\\\''folders'\\\\''\\)\\); print\\('\\\\''material titles:'\\\\'', [m.get\\('\\\\''title'\\\\''\\) for m in d.get\\('\\\\''materials'\\\\'',[]\\)]\\)')"
     ]
   }
 }
