@@ -78,7 +78,9 @@
       "Bash(node_modules/electron/dist/Electron.app/Contents/MacOS/Electron --version)",
       "Bash(echo \"exit: $?\")",
       "Read(//Volumes/**)",
-      "Bash(hdiutil detach *)"
+      "Bash(hdiutil detach *)",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(awk '{print $1}')"
     ]
   }
 }
