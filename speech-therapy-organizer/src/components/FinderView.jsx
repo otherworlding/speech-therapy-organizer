@@ -96,6 +96,8 @@ export default function FinderView({ store }) {
   const [renaming, setRenaming] = useState(null)     // folder id
   const [inspectId, setInspectId] = useState(null)   // material id whose details panel is open
   const rootRef = useRef(null)
+  const anchorRef = useRef(null)          // last-clicked key, for Shift-range selection
+  const visibleKeysRef = useRef([])       // ordered keys currently on screen
 
   const folders = store.folders || []
   const currentFolderId = path.length ? path[path.length - 1] : null
@@ -163,14 +165,22 @@ export default function FinderView({ store }) {
     await importDropped(paths.map(p => ({ isDir: true, path: p })), currentFolderId)
   }
 
-  // ── Selection ──
+  // ── Selection (click = one · Cmd-click = toggle · Shift-click = range) ──
   const toggleSelect = (e, key) => {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (e.metaKey || e.ctrlKey) { next.has(key) ? next.delete(key) : next.add(key) }
-      else { next.clear(); next.add(key) }
-      return next
-    })
+    const ordered = visibleKeysRef.current
+    if (e.shiftKey && anchorRef.current && ordered.includes(anchorRef.current) && ordered.includes(key)) {
+      const a = ordered.indexOf(anchorRef.current), b = ordered.indexOf(key)
+      const [lo, hi] = a < b ? [a, b] : [b, a]
+      const range = ordered.slice(lo, hi + 1)
+      setSelected(prev => new Set([...((e.metaKey || e.ctrlKey) ? prev : []), ...range]))
+      return
+    }
+    if (e.metaKey || e.ctrlKey) {
+      setSelected(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next })
+    } else {
+      setSelected(new Set([key]))
+    }
+    anchorRef.current = key
   }
   const clearSelect = () => setSelected(new Set())
 
@@ -243,6 +253,10 @@ export default function FinderView({ store }) {
   // Details/tagging panel is opened explicitly via the ⓘ button — NOT on selection,
   // so selecting/dragging a material never gets blocked by the panel.
   const inspectMaterial = inspectId ? store.materials.find(m => m.id === inspectId) : null
+  // Ordered list of on-screen keys, used for Shift-click range selection
+  visibleKeysRef.current = searchHits
+    ? searchHits.map(m => 'm:' + m.id)
+    : [...hereFolders.map(f => 'f:' + f.id), ...hereMaterials.map(m => 'm:' + m.id)]
 
   // ── Renderers for a folder + a material (shared by icon & list) ──
   const folderNode = (f) => {
