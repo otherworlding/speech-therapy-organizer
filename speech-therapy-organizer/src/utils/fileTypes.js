@@ -25,3 +25,10 @@ export function isExternalFile(filePath) {
 export function externalLabel(filePath) {
   return EXTERNAL_LABELS[getExt(filePath)] || 'External App'
 }
+
+// Extract an 11-char YouTube video id from any common URL form
+export function youTubeId(url) {
+  if (!url) return null
+  const m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([\w-]{11})/)
+  return m ? m[1] : null
+}

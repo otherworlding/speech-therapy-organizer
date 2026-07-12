@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import FileViewer from './FileViewer'
-import { isExternalFile, externalLabel } from '../utils/fileTypes'
+import { isExternalFile, externalLabel, youTubeId } from '../utils/fileTypes'
 
 // First-page PDF thumbnails, rendered once and cached by file path
 const pdfThumbCache = new Map()
@@ -66,12 +66,22 @@ function resolveDrop(e) {
   }).filter(d => d.path)
 }
 
+const KIND_BY_EXT = { pdf: 'PDF', jpg: 'Image', jpeg: 'Image', png: 'Image', gif: 'Image', bmp: 'Image', webp: 'Image', svg: 'Image', mp4: 'Video', mov: 'Video', avi: 'Video', webm: 'Video', mp3: 'Audio', wav: 'Audio', m4a: 'Audio', ogg: 'Audio', pptx: 'PowerPoint', ppt: 'PowerPoint', docx: 'Word', doc: 'Word', xlsx: 'Excel', xls: 'Excel' }
+function kindLabel(m) {
+  if (m.type === 'folder') return 'Folder'
+  if (m.type === 'youtube') return 'YouTube video'
+  if (m.type === 'html-game') return 'Interactive'
+  if (m.type === 'image-deck') return 'Image set'
+  return KIND_BY_EXT[extOf(m.filePath)] || (extOf(m.filePath) ? extOf(m.filePath).toUpperCase() : 'File')
+}
+
 function thumbFor(m) {
   if (m.type === 'html-game') return { icon: '🎮' }
   if (m.type === 'folder') {
     const img = (m.items || []).find(i => IMG_EXT.test(i.filename))
     return img ? { img: img.filePath } : { icon: '📁' }
   }
+  if (m.type === 'youtube') return { yt: m.videoId }
   if (m.type === 'image-deck' && m.imagePaths?.length) return { img: m.imagePaths[0] }
   if (m.filePath && IMG_EXT.test(m.filePath)) return { img: m.filePath }
   if (extOf(m.filePath) === 'pdf') return { pdf: m.filePath }
@@ -95,6 +105,7 @@ export default function FinderView({ store }) {
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [renaming, setRenaming] = useState(null)     // folder id
   const [inspectId, setInspectId] = useState(null)   // material id whose details panel is open
+  const [linkOpen, setLinkOpen] = useState(false)    // YouTube-link modal
   const rootRef = useRef(null)
   const anchorRef = useRef(null)          // last-clicked key, for Shift-range selection
   const visibleKeysRef = useRef([])       // ordered keys currently on screen
@@ -321,7 +332,7 @@ export default function FinderView({ store }) {
               onBlur={e => { store.updateFolder(f.id, { name: e.target.value.trim() || f.name }); setRenaming(null) }}
               onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }} />
           : <span className="fx-name" onDoubleClick={e => { e.stopPropagation(); setRenaming(f.id) }}>{f.name}</span>}
-        <span className="fx-sub">{count} item{count !== 1 ? 's' : ''}</span>
+        <span className="fx-sub">{view === 'list' ? `Folder · ${count}` : `${count} item${count !== 1 ? 's' : ''}`}</span>
       </div>
     )
   }
@@ -339,14 +350,18 @@ export default function FinderView({ store }) {
         {m.colorLabel && <span className="fx-color-dot" style={{ background: m.colorLabel }} />}
         <button className="fx-info-i" title="Details & tags" onClick={e => { e.stopPropagation(); setInspectId(m.id) }}>ⓘ</button>
         <button className="fx-del-x" title="Delete" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>✕</button>
-        {t.pdf
-          ? <PdfThumb filePath={t.pdf} />
-          : t.img
-            ? <span className="fx-thumb"><img src={`file://${t.img}`} alt="" /></span>
-            : <span className="fx-icon">{t.icon}</span>}
+        {t.yt
+          ? <span className="fx-thumb fx-yt-thumb"><img src={`https://img.youtube.com/vi/${t.yt}/hqdefault.jpg`} alt="" onError={e => { e.target.style.display = 'none' }} /><span className="fx-yt-play">▶</span></span>
+          : t.pdf
+            ? <PdfThumb filePath={t.pdf} />
+            : t.img
+              ? <span className="fx-thumb"><img src={`file://${t.img}`} alt="" /></span>
+              : <span className="fx-icon">{t.icon}</span>}
         <span className="fx-name">{m.title}</span>
         <span className="fx-sub">
-          {m.openExternal ? `↗ ${externalLabel(m.filePath)}` : [m.category, ...(m.tags||[])].filter(Boolean).slice(0,2).join(' · ')}
+          {view === 'list'
+            ? kindLabel(m)
+            : (m.openExternal ? `↗ ${externalLabel(m.filePath)}` : [m.category, ...(m.tags||[])].filter(Boolean).slice(0,2).join(' · '))}
         </span>
       </div>
     )
@@ -384,6 +399,7 @@ export default function FinderView({ store }) {
           <button className="btn-secondary fx-newfolder" onClick={() => setNewFolderOpen(true)}>＋ Folder</button>
           <button className="btn-secondary" onClick={pickFiles} disabled={importing}>📥 Files</button>
           <button className="btn-secondary" onClick={pickFolders} disabled={importing}>🗂 Folder</button>
+          <button className="btn-secondary" onClick={() => setLinkOpen(true)}>🔗 Link</button>
         </div>
       </div>
 
@@ -420,7 +436,7 @@ export default function FinderView({ store }) {
         ) : (
           <div className={`fx-grid ${view}`}>
             {view === 'list' && (
-              <div className="fx-list-head"><span>Name</span><span>Kind</span></div>
+              <div className="fx-list-head"><span></span><span>Name</span><span>Kind</span></div>
             )}
             {hereFolders.map(folderNode)}
             {hereMaterials.map(materialNode)}
@@ -444,6 +460,14 @@ export default function FinderView({ store }) {
         <FolderModal onSave={(name, color) => { store.addFolder(name, color, currentFolderId); setNewFolderOpen(false) }} onCancel={() => setNewFolderOpen(false)} />
       )}
 
+      {/* YouTube link modal */}
+      {linkOpen && (
+        <LinkModal onSave={({ title, url, videoId }) => {
+          store.addMaterial({ type: 'youtube', title, url, videoId, folderId: currentFolderId, category: 'Language', tags: [] })
+          setLinkOpen(false)
+        }} onCancel={() => setLinkOpen(false)} />
+      )}
+
       {/* Preview */}
       {preview && (
         <div className="browse-preview-backdrop" onClick={() => { setPreview(null); setFullscreen(false) }}>
@@ -453,6 +477,35 @@ export default function FinderView({ store }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function LinkModal({ onSave, onCancel }) {
+  const [url, setUrl] = useState('')
+  const [title, setTitle] = useState('')
+  const videoId = youTubeId(url)
+  const valid = !!videoId
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <h2>🔗 Add YouTube Link</h2>
+        <p className="settings-note" style={{ marginBottom: 12 }}>Paste a YouTube link. It plays inside the app during sessions (streams — needs internet).</p>
+        <form onSubmit={e => { e.preventDefault(); if (valid) onSave({ title: title.trim() || 'YouTube Video', url: url.trim(), videoId }) }}>
+          <label>YouTube URL *
+            <input autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" />
+          </label>
+          {url && !valid && <div className="wizard-error">⚠ That doesn't look like a YouTube link.</div>}
+          {valid && <img className="link-preview" src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`} alt="" onError={e => { e.target.style.display = 'none' }} />}
+          <label>Title
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Wheels on the Bus" />
+          </label>
+          <div className="form-actions">
+            <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={!valid}>Add</button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

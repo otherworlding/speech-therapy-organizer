@@ -27,8 +27,9 @@ function groupByWeek(sessions) {
 }
 
 function MiniThumb({ m }) {
+  if (m.type === 'youtube' && m.videoId) return <span className="ws-mini-thumb"><img src={`https://img.youtube.com/vi/${m.videoId}/hqdefault.jpg`} alt="" onError={e => { e.target.style.display = 'none' }} /></span>
   if (m.filePath && IMG_EXT.test(m.filePath)) return <span className="ws-mini-thumb"><img src={`file://${m.filePath}`} alt="" /></span>
-  const icon = m.type === 'folder' ? '📁' : m.type === 'html-game' ? '🎮' : (FILE_ICONS[extOf(m.filePath)] || '📎')
+  const icon = m.type === 'youtube' ? '▶' : m.type === 'folder' ? '📁' : m.type === 'html-game' ? '🎮' : (FILE_ICONS[extOf(m.filePath)] || '📎')
   return <span className="ws-mini-icon">{icon}</span>
 }
 

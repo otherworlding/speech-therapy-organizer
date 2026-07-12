@@ -11,6 +11,7 @@ const VIDEO_EXT = /\.(mp4|mov|avi|webm)$/i
 const AUDIO_EXT = /\.(mp3|wav|m4a|ogg)$/i
 
 function getType(material) {
+  if (material.type === 'youtube') return 'youtube'
   if (material.type === 'html-game') return 'html-game'
   if (material.type === 'folder') return 'folder'
   if (material.type === 'image-deck') return 'deck'
@@ -67,6 +68,16 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen 
       </div>
 
       <div className={`viewer-body ${type === 'folder' || type === 'html-game' ? 'viewer-body-folder' : ''}`}>
+        {type === 'youtube' && (
+          <div className="youtube-viewer">
+            <iframe
+              src={`https://www.youtube.com/embed/${material.videoId}`}
+              title={material.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        )}
         {type === 'html-game' && <HtmlGameViewer material={material} />}
         {type === 'folder' && <FolderViewer material={material} onPageInfo={handlePageInfo} />}
         {material.openExternal && type !== 'folder' && (

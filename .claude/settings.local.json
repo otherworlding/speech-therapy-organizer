@@ -96,7 +96,9 @@
       "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Welcome.pdf)",
       "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/artic-cards.pdf)",
       "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/R-sounds/r-words.pdf)",
-      "Bash(awk '{print $5, $NF}')"
+      "Bash(awk '{print $5, $NF}')",
+      "Bash(grep -rn \"Content-Security-Policy\\\\|http-equiv\\\\|onHeadersReceived\\\\|webSecurity\" index.html electron/main.js)",
+      "Bash(ls index.html public/index.html)"
     ]
   }
 }
