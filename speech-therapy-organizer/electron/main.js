@@ -106,6 +106,10 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, nodeIntegration: false,
       webviewTag: true,
+      // Dev only: the renderer loads from http://localhost (Vite), and Chromium blocks
+      // file:// <img> loads from a network-origin page. The packaged app loads via file://
+      // itself (win.loadFile below) where this restriction doesn't apply, so it's dev-only.
+      webSecurity: !isDev,
     },
   })
   if (isDev) win.loadURL('http://localhost:5173')

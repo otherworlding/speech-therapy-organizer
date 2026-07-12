@@ -105,7 +105,19 @@
       "Bash(sed \"s|'./src/store/useStore.js'|'/Users/otherworlding/Asset calulation app/speech-therapy-organizer/src/store/useStore.js'|\" /tmp/merge-test.mjs)",
       "Bash(node /private/tmp/claude-501/-Users-otherworlding-Asset-calulation-app/2fdb9852-e15d-4b68-8f0d-4734d5b03469/scratchpad/merge-test.mjs)",
       "Bash(rm -f /tmp/merge-test.mjs)",
-      "Bash(grep -n \"function ApptModal\\\\|const \\\\[f, setF\\\\]\\\\|Start Time\\\\|Length \\(minutes\\)\\\\|cal-appt\\\\b\\\\|onSave={\" src/pages/CalendarPage.jsx)"
+      "Bash(grep -n \"function ApptModal\\\\|const \\\\[f, setF\\\\]\\\\|Start Time\\\\|Length \\(minutes\\)\\\\|cal-appt\\\\b\\\\|onSave={\" src/pages/CalendarPage.jsx)",
+      "Bash(lsof -nP -iTCP:5173 -sTCP:LISTEN)",
+      "Bash(lsof -nP -iTCP:5174 -sTCP:LISTEN)",
+      "Bash(cat vite.config.js)",
+      "Bash(cat vite.config.ts)",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"wait-on http://localhost:5173\")",
+      "Bash(xxd)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(pkill -f \"electron .\")",
+      "Bash(pkill -f \"wait-on\")",
+      "Bash(lsof -nP -iTCP:5173,5174,5175,5176 -sTCP:LISTEN)",
+      "Bash(pkill -f \"node_modules/electron/dist/Electron.app\")"
     ]
   }
 }

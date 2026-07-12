@@ -84,8 +84,9 @@ function InPersonLibrary({ store, onPreview }) {
     if (paths?.[0]) { setBusy(true); const dest = await window.api.copyToLibrary(paths[0]); setPhotoPath(dest); setBusy(false) }
   }
   const save = () => {
-    if (!title.trim()) return
-    store.addMaterial({ type: 'physical', title: title.trim(), filePath: photoPath, folderId: INPERSON_FOLDER_ID, category: 'In-Person', tags: [] })
+    if (!title.trim() && !photoPath) return
+    const fallbackTitle = photoPath ? photoPath.split('/').pop().replace(/\.[^.]+$/, '') : ''
+    store.addMaterial({ type: 'physical', title: title.trim() || fallbackTitle, filePath: photoPath, folderId: INPERSON_FOLDER_ID, category: 'In-Person', tags: [] })
     setTitle(''); setPhotoPath(null); setAdding(false)
   }
 
@@ -99,7 +100,7 @@ function InPersonLibrary({ store, onPreview }) {
             <div className="ip-add-row">
               <input placeholder="e.g. Flashcards — fruits" value={title} onChange={e => setTitle(e.target.value)} />
               <button className="btn-secondary" onClick={pickPhoto} disabled={busy}>{busy ? '…' : photoPath ? '✓ Photo added' : '📷 Add Photo (optional)'}</button>
-              <button className="btn-primary" onClick={save} disabled={!title.trim()}>Save</button>
+              <button className="btn-primary" onClick={save} disabled={!title.trim() && !photoPath}>Save</button>
             </div>
           )}
           <SelectableGrid materials={items} view="icon" onAssignKeys={() => {}}
