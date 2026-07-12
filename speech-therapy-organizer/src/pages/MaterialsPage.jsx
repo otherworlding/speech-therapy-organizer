@@ -5,7 +5,7 @@ export default function MaterialsPage({ store }) {
   return (
     <div className="page page-wide materials-page">
       <div className="page-header">
-        <h1>Materials &amp; Clients</h1>
+        <h1>Library &amp; Session Planner</h1>
       </div>
       <Workspace store={store} />
     </div>

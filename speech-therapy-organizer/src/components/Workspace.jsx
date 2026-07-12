@@ -136,16 +136,19 @@ function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHin
 }
 
 // Share the current homework set: build folder + WhatsApp / Email / Reveal
-function ShareMenu({ client, materials }) {
+function ShareMenu({ client, materials, note }) {
   const [open, setOpen] = useState(false)
   const dateStr = new Date().toISOString().slice(0, 10)
   const message = () => {
     const lines = materials.map(m => m.type === 'youtube' ? `• ${m.title}: ${m.url}` : `• ${m.title}`)
-    return `Home Practice — ${client.name} — ${new Date().toLocaleDateString()}\n\nMaterials:\n${lines.join('\n')}`
+    const parts = [`Home Practice — ${client.name} — ${new Date().toLocaleDateString()}`]
+    if (note && note.trim()) parts.push('', note.trim())
+    parts.push('', `Materials:\n${lines.join('\n')}`)
+    return parts.join('\n')
   }
   const buildFolder = async () => {
     const filePaths = materials.flatMap(filesOfMaterial)
-    const res = await window.api.createHomeworkFolder({ clientName: client.name, dateStr, filePaths })
+    const res = await window.api.createHomeworkFolder({ clientName: client.name, dateStr, filePaths, note })
     if (res?.success) await window.api.revealInFinder(res.folderPath)
     return res
   }
@@ -211,8 +214,10 @@ export default function Workspace({ store }) {
   const [fs, setFs] = useState(false)
   const [open, setOpen] = useState({ session: true, sessionThis: true, sessionPrev: false, homework: true, hwThis: true, hwPast: false })
   const toggle = k => setOpen(o => ({ ...o, [k]: !o[k] }))
+  const [noteDraft, setNoteDraft] = useState('')
 
   const client = store.clients.find(c => c.id === selectedClientId)
+  useEffect(() => { setNoteDraft(client?.homeworkNote || '') }, [selectedClientId])
   const assigned = client ? store.materials.filter(m => client.materialIds?.includes(m.id)) : []
   const homework = client ? store.materials.filter(m => (client.homeworkIds || []).includes(m.id)) : []
   const clientSessions = client ? (store.sessions || []).filter(s => s.clientId === client.id) : []
@@ -226,29 +231,7 @@ export default function Workspace({ store }) {
     if (ids.length) store.assignMaterials(clientId, ids)
   }
 
-  return (
-    <div className={`workspace ${dragging ? 'ws-dragging' : ''}`}>
-      {/* LEFT — clients */}
-      <div className="ws-clients">
-        <div className="ws-pane-title">👦 Clients</div>
-
-        <div className="ws-chips">
-          {store.clients.map(c => (
-            <div key={c.id}
-              className={`ws-chip ${c.id === selectedClientId ? 'selected' : ''} ${dragClientId === c.id ? 'drop-glow' : ''}`}
-              onClick={() => setSelectedClientId(c.id)}
-              onDragOver={e => { e.preventDefault(); setDragClientId(c.id) }}
-              onDragLeave={() => setDragClientId(d => d === c.id ? null : d)}
-              onDrop={e => { e.preventDefault(); assignTo(c.id, e); setDragClientId(null); setDragging(false) }}>
-              <span className="ws-chip-avatar">{c.name[0].toUpperCase()}</span>
-              <span className="ws-chip-name">{c.name}</span>
-              <span className="ws-chip-count">{c.materialIds?.length || 0}</span>
-            </div>
-          ))}
-          {store.clients.length === 0 && <div className="ws-empty-hint">Add clients on the Clients screen.</div>}
-        </div>
-
-        {client && (
+  const renderDetail = () => (
           <div className="ws-detail">
             {/* SESSION MATERIALS */}
             <FolderHead open={open.session} onToggle={() => toggle('session')} icon="📁" label="Session Materials" />
@@ -283,18 +266,28 @@ export default function Workspace({ store }) {
 
             {/* HOMEWORK */}
             <FolderHead open={open.homework} onToggle={() => toggle('homework')} icon="📁" label="Homework"
-              right={<ShareMenu client={client} materials={homework} />} />
+              right={<ShareMenu client={client} materials={homework} note={noteDraft} />} />
             {open.homework && (
               <div className="ws-folder-body">
                 <FolderHead sub open={open.hwThis} onToggle={() => toggle('hwThis')} icon="📂" label="This Week" count={homework.length}
                   right={<AddFromSession materials={assigned} onAdd={ids => store.assignHomework(client.id, ids)} />} />
 
                 {open.hwThis && (
-                  <SelectableGrid materials={homework}
-                    onAssignKeys={ids => store.assignHomework(client.id, ids)}
-                    onRemove={id => store.unassignHomework(client.id, id)}
-                    onPreview={setPreview} onDragStateChange={setDragging}
-                    emptyHint="Drag materials here to add homework →" />
+                  <>
+                    <SelectableGrid materials={homework}
+                      onAssignKeys={ids => store.assignHomework(client.id, ids)}
+                      onRemove={id => store.unassignHomework(client.id, id)}
+                      onPreview={setPreview} onDragStateChange={setDragging}
+                      emptyHint="Drag materials here to add homework →" />
+                    <textarea
+                      className="ws-hw-note"
+                      placeholder="Instructions for the family… (saved as Instructions.txt and included in the message)"
+                      value={noteDraft}
+                      onChange={e => setNoteDraft(e.target.value)}
+                      onBlur={() => store.updateClient(client.id, { homeworkNote: noteDraft })}
+                      rows={3}
+                    />
+                  </>
                 )}
                 <FolderHead sub open={open.hwPast} onToggle={() => toggle('hwPast')} icon="📁" label="Past Homework" count={pastHomeworkWeeks.length} />
                 {open.hwPast && (
@@ -319,14 +312,43 @@ export default function Workspace({ store }) {
               </div>
             )}
           </div>
-        )}
+  )
+
+  return (
+    <div className={`workspace ${dragging ? 'ws-dragging' : ''}`}>
+      {/* LEFT — clients, accordion: each client's folders open directly under their own row */}
+      <div className="ws-clients">
+        <div className="ws-pane-title">👦 Clients</div>
+
+        <div className="ws-chips">
+          {store.clients.map(c => {
+            const isSelected = c.id === selectedClientId
+            return (
+              <div key={c.id} className="ws-chip-wrap">
+                <div
+                  className={`ws-chip ${isSelected ? 'selected' : ''} ${dragClientId === c.id ? 'drop-glow' : ''}`}
+                  onClick={() => setSelectedClientId(isSelected ? null : c.id)}
+                  onDragOver={e => { e.preventDefault(); setDragClientId(c.id) }}
+                  onDragLeave={() => setDragClientId(d => d === c.id ? null : d)}
+                  onDrop={e => { e.preventDefault(); assignTo(c.id, e); setDragClientId(null); setDragging(false) }}>
+                  <span className="ws-chip-caret">{isSelected ? '▾' : '▸'}</span>
+                  <span className="ws-chip-avatar">{c.name[0].toUpperCase()}</span>
+                  <span className="ws-chip-name">{c.name}</span>
+                  <span className="ws-chip-count">{c.materialIds?.length || 0}</span>
+                </div>
+                {isSelected && client && renderDetail()}
+              </div>
+            )
+          })}
+          {store.clients.length === 0 && <div className="ws-empty-hint">Add clients on the Clients screen.</div>}
+        </div>
       </div>
 
       {/* RIGHT — materials Finder */}
       <div className="ws-materials"
         onDragStartCapture={() => setDragging(true)}
         onDragEndCapture={() => { setDragging(false); setDragClientId(null) }}>
-        <div className="ws-pane-title">📚 Materials Library <span className="ws-hint-inline">drag onto a client or a folder to add →← </span></div>
+        <div className="ws-pane-title">📚 Library <span className="ws-hint-inline">drag onto a client or a folder to add →← </span></div>
         <FinderView store={store} />
       </div>
 

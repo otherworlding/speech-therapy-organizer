@@ -3,7 +3,7 @@ import React from 'react'
 const NAV = [
   { id: 'clients', icon: '👦', label: 'Clients' },
   { id: 'calendar', icon: '📅', label: 'Schedule' },
-  { id: 'materials', icon: '📁', label: 'Materials Library' },
+  { id: 'materials', icon: '📁', label: 'Library & Planner' },
   { id: 'reports', icon: '📋', label: 'Session Reports' },
   { id: 'settings', icon: '⚙️', label: 'Settings' },
 ]

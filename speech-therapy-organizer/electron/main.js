@@ -267,7 +267,8 @@ ipcMain.handle('shell:open-external', (_, url) => {
 ipcMain.handle('shell:reveal', (_, p) => { try { shell.showItemInFolder(p) } catch {} return true })
 
 // Create a dated homework folder for a client with copies of the chosen files
-ipcMain.handle('homework:create-folder', async (_, { clientName, dateStr, filePaths }) => {
+// and an optional Instructions.txt with the therapist's note
+ipcMain.handle('homework:create-folder', async (_, { clientName, dateStr, filePaths, note }) => {
   try {
     const base = path.join(os.homedir(), 'Documents', 'Speech Therapy Homework')
     const safeName = (clientName || 'Client').replace(/[\/:*?"<>|]/g, '-').trim()
@@ -279,7 +280,12 @@ ipcMain.handle('homework:create-folder', async (_, { clientName, dateStr, filePa
         if (fp && fs.existsSync(fp)) { fs.copyFileSync(fp, path.join(dest, path.basename(fp))); count++ }
       } catch {}
     }
-    return { success: true, folderPath: dest, count }
+    let notePath = null
+    if (note && note.trim()) {
+      notePath = path.join(dest, 'Instructions.txt')
+      fs.writeFileSync(notePath, note, 'utf8')
+    }
+    return { success: true, folderPath: dest, count, notePath }
   } catch (e) {
     return { success: false, error: e.message }
   }
