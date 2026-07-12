@@ -12,12 +12,31 @@ _Last updated: 2026-07-12_
 | Metric | Value |
 |---|---|
 | Development span | 2026-06-18 → 2026-07-12 (~25 calendar days, part-time) |
-| Feature commits | 26 |
-| Hand-written source | ~7,100 lines across 36 files (JSX / JS / CSS) |
-| Full DMG builds run | ~77–87 (both arches across feature rounds + iterative test builds) |
-| Renderer-only builds | ~72 |
+| Feature commits | 28 |
+| Hand-written source | ~7,300 lines across 35 files (JSX / JS / CSS) |
+| Full DMG builds run | ~79–89 (both arches across feature rounds + iterative test builds) |
+| Renderer-only builds | ~76 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 4 (2026-07-12): In-person session tracking + unified library
+Per-session (not per-client) online/in-person toggle set at the scheduler, session
+start, and manual report; a per-client "In-Person" folder (Upcoming → Needs Review →
+Archive, with a Skip option) for logging photos/notes tied to real appointments; and
+a Digital/In-Person library split via tabs so drags can't land in the wrong one.
+
+The in-person library itself went through two designs — a bespoke add-item form
+first, then rebuilt to reuse the existing Finder component scoped to a real folder,
+after user feedback that it should look and behave exactly like the Digital library
+(folders, tags, icon/list, drop-then-describe). Two real bugs were caught and fixed
+along the way: a disabled Save button with no visual disabled state, and a Chromium
+dev-mode-only restriction blocking local image thumbnails (fixed via `webSecurity`
+toggled off only in dev, packaged builds were never affected).
+
+**Footprint note:** most of this round's cost was dev-mode verification (real
+Finder-to-app drag tests, DevTools console inspection) rather than build cycles —
+only one arm64 build plus the closing Intel build were needed, both smoke-tested
+before calling it done.
 
 ### Round 3 (2026-07-12): Data safety — crash-safe saves, backups, and merge sync
 Atomic writes + corruption recovery, automatic daily backups with restore, full
