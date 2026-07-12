@@ -11,21 +11,26 @@ _Last updated: 2026-07-11_
 
 | Metric | Value |
 |---|---|
-| Development span | 2026-06-18 → 2026-07-11 (~23 calendar days, part-time) |
-| Feature commits | 19 |
-| Hand-written source | ~5,600 lines across 32 files (JSX / JS / CSS) |
-| Full DMG builds run | ~55–65 (both Intel + Apple Silicon across feature rounds + tests) |
-| Renderer-only builds | ~40 |
+| Development span | 2026-06-18 → 2026-07-11 (~24 calendar days, part-time) |
+| Feature commits | 21 |
+| Hand-written source | ~5,800 lines across 32 files (JSX / JS / CSS) |
+| Full DMG builds run | ~65–75 (both arches across feature rounds + iterative test builds) |
+| Renderer-only builds | ~55 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
 
 ### Round 2 (2026-07-11): Finder rebuild + dual-pane workspace
 Materials rebuilt as a Finder (icon/list, recursive folder import, thumbnails,
-sort, delete, copy/paste), viewer upgrades (continuous PDF scroll, zoom),
-homework share, and a two-pane clients+materials workspace with drag-to-assign.
-Biggest footprint cost this round: ~8 arm64 test rebuilds driven by iterative
-last-minute additions. The pre-final-build check-in and single-arch-iteration
-rules kept the dual Intel build to once at the end.
+sort, delete, copy/paste, marquee/shift/cmd selection), viewer upgrades
+(continuous PDF scroll, zoom), homework share, YouTube-link materials, and a
+two-pane clients+materials workspace with drag-to-assign.
+
+**Footprint lesson this round:** the dominant cost was ~12 arm64 test rebuilds
+driven by iterative last-minute fixes (marquee, list column, YouTube, tagging
+decouple). Each arch build is ~1–3 min CPU. The "prompt before every build" +
+single-arch-during-iteration rules held the expensive dual Intel build to a
+single run at the very end. Next time, batching a few fixes before each test
+build would cut the arm64 rebuild count roughly in half.
 
 ## Compute / energy estimate
 
