@@ -122,7 +122,7 @@ function thumbFor(m) {
   return { icon: FILE_ICONS[extOf(m.filePath)] || '📎' }
 }
 
-export default function FinderView({ store }) {
+export default function FinderView({ store, scopeFolderId = null, excludeFolderId = null, rootLabel = '🏠 Library' }) {
   const [view, setView] = useState('icon')          // 'icon' | 'list'
   const [sortKey, setSortKey] = useState('name')     // name | added | kind | opened
   const [sortDir, setSortDir] = useState('asc')      // asc | desc
@@ -158,7 +158,8 @@ export default function FinderView({ store }) {
   }, [])
 
   const folders = store.folders || []
-  const currentFolderId = path.length ? path[path.length - 1] : null
+  const rootId = scopeFolderId || null
+  const currentFolderId = path.length ? path[path.length - 1] : rootId
 
   // Sort materials by the chosen Finder-style key
   const sortMaterials = (list) => {
@@ -174,8 +175,25 @@ export default function FinderView({ store }) {
     })
     return arr
   }
-  const childFolders = pid => folders.filter(f => (f.parentId || null) === pid).sort((a, b) => a.name.localeCompare(b.name))
-  const materialsIn = fid => sortMaterials(store.materials.filter(m => (m.folderId || null) === fid))
+  // Walk a folder's parent chain (self included) — used to keep the Digital and
+  // In-Person tabs from leaking into each other via search/recent/pinned, which
+  // otherwise scan every material regardless of which folder subtree it's in.
+  const chainToRoot = (folderId) => {
+    const chain = []
+    let cur = folderId
+    while (cur) { chain.push(cur); cur = folders.find(f => f.id === cur)?.parentId || null }
+    return chain
+  }
+  const inScope = (m) => {
+    if (scopeFolderId) return chainToRoot(m.folderId || null).includes(scopeFolderId)
+    if (excludeFolderId) return !chainToRoot(m.folderId || null).includes(excludeFolderId)
+    return true
+  }
+  const scopedMaterials = store.materials.filter(inScope)
+  const childFolders = pid => folders
+    .filter(f => (f.parentId || null) === pid && !(pid === null && excludeFolderId && f.id === excludeFolderId))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  const materialsIn = fid => sortMaterials(scopedMaterials.filter(m => (m.folderId || null) === fid))
 
   // Open a material for preview and remember when (for "recently opened" sort)
   const openPreview = (m) => { store.updateMaterial(m.id, { lastOpened: Date.now() }); setPreview(m) }
@@ -346,9 +364,9 @@ export default function FinderView({ store }) {
     await importDropped(resolveDrop(e), currentFolderId)  // OS files into current location
   }
 
-  // ── Search (flat, across everything) ──
+  // ── Search (flat, across this tab's scope only) ──
   const q = search.trim().toLowerCase()
-  const searchHits = q ? sortMaterials(store.materials.filter(m =>
+  const searchHits = q ? sortMaterials(scopedMaterials.filter(m =>
     m.title?.toLowerCase().includes(q) || m.category?.toLowerCase().includes(q) || (m.tags||[]).some(t => t.toLowerCase().includes(q))
   )) : null
 
@@ -358,11 +376,11 @@ export default function FinderView({ store }) {
   // so selecting/dragging a material never gets blocked by the panel.
   const inspectMaterial = inspectId ? store.materials.find(m => m.id === inspectId) : null
 
-  // Recent / Pinned quick-access — flat lists spanning every folder
+  // Recent / Pinned quick-access — flat lists spanning every folder within this tab's scope
   const smartMaterials = smartView === 'recent'
-    ? sortMaterials(store.materials.filter(m => m.lastOpened)).sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0)).slice(0, 200)
+    ? sortMaterials(scopedMaterials.filter(m => m.lastOpened)).sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0)).slice(0, 200)
     : smartView === 'pinned'
-      ? sortMaterials(store.materials.filter(m => m.pinned))
+      ? sortMaterials(scopedMaterials.filter(m => m.pinned))
       : null
 
   // Unified ordered list (folders first, like Finder) — drives both selection order and rendering
@@ -444,7 +462,7 @@ export default function FinderView({ store }) {
       {/* Toolbar */}
       <div className="fx-toolbar">
         <div className="fx-crumbs">
-          <button className="fx-crumb" onClick={() => { setPath([]); setSearch(''); setSmartView(null) }}>🏠 Library</button>
+          <button className="fx-crumb" onClick={() => { setPath([]); setSearch(''); setSmartView(null) }}>{rootLabel}</button>
           {smartView === 'recent' && <><span className="fx-crumb-sep">›</span><span className="fx-crumb crumb-current">🕘 Recent</span></>}
           {smartView === 'pinned' && <><span className="fx-crumb-sep">›</span><span className="fx-crumb crumb-current">📌 Pinned</span></>}
           {!smartView && path.map((fid, i) => {

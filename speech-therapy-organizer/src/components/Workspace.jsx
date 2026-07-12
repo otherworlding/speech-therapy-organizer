@@ -3,7 +3,7 @@ import FinderView from './FinderView'
 import FileViewer from './FileViewer'
 import SessionAttachments from './SessionAttachments'
 
-const INPERSON_FOLDER_ID = '__inperson-lib__'
+const IN_PERSON_FOLDER_NAME = 'In-Person Materials'
 
 const IMG_EXT = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i
 const FILE_ICONS = { pdf: '📄', pptx: '📊', ppt: '📊', docx: '📝', doc: '📝', mp4: '🎬', mov: '🎬', avi: '🎬', mp3: '🎵', wav: '🎵', m4a: '🎵' }
@@ -36,7 +36,7 @@ function groupByWeek(sessions) {
 function MiniThumb({ m }) {
   if (m.type === 'youtube' && m.videoId) return <span className="ws-mini-thumb"><img src={`https://img.youtube.com/vi/${m.videoId}/hqdefault.jpg`} alt="" onError={e => { e.target.style.display = 'none' }} /></span>
   if (m.filePath && IMG_EXT.test(m.filePath)) return <span className="ws-mini-thumb"><img src={`file://${m.filePath}`} alt="" /></span>
-  const icon = m.type === 'youtube' ? '▶' : m.type === 'folder' ? '📁' : m.type === 'html-game' ? '🎮' : m.type === 'physical' ? '🤝' : (FILE_ICONS[extOf(m.filePath)] || '📎')
+  const icon = m.type === 'youtube' ? '▶' : m.type === 'folder' ? '📁' : m.type === 'html-game' ? '🎮' : (FILE_ICONS[extOf(m.filePath)] || '📎')
   return <span className="ws-mini-icon">{icon}</span>
 }
 
@@ -66,50 +66,19 @@ function kindLabel(m) {
   if (m.type === 'youtube') return 'YouTube video'
   if (m.type === 'folder') return 'Folder'
   if (m.type === 'html-game') return 'Interactive'
-  if (m.type === 'physical') return 'Physical item'
   return KIND_BY_EXT[extOf(m.filePath)] || (extOf(m.filePath) ? extOf(m.filePath).toUpperCase() : 'File')
 }
 
-// Shared (not per-client) library of physical/in-person materials — name and/or a photo, no digital file required
-function InPersonLibrary({ store, onPreview }) {
-  const [open, setOpen] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [title, setTitle] = useState('')
-  const [photoPath, setPhotoPath] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const items = store.materials.filter(m => m.type === 'physical')
-
-  const pickPhoto = async () => {
-    const paths = await window.api.pickAttachmentFiles()
-    if (paths?.[0]) { setBusy(true); const dest = await window.api.copyToLibrary(paths[0]); setPhotoPath(dest); setBusy(false) }
+// Count materials whose folder chain leads back to rootId (self or any nested subfolder)
+function countInFolderTree(materials, folders, rootId) {
+  if (!rootId) return 0
+  const chainToRoot = (folderId) => {
+    const chain = []
+    let cur = folderId
+    while (cur) { chain.push(cur); cur = folders.find(f => f.id === cur)?.parentId || null }
+    return chain
   }
-  const save = () => {
-    if (!title.trim() && !photoPath) return
-    const fallbackTitle = photoPath ? photoPath.split('/').pop().replace(/\.[^.]+$/, '') : ''
-    store.addMaterial({ type: 'physical', title: title.trim() || fallbackTitle, filePath: photoPath, folderId: INPERSON_FOLDER_ID, category: 'In-Person', tags: [] })
-    setTitle(''); setPhotoPath(null); setAdding(false)
-  }
-
-  return (
-    <div className="ws-inperson-lib">
-      <FolderHead open={open} onToggle={() => setOpen(o => !o)} icon="🤝" label="In-Person Materials" count={items.length}
-        right={<button className="btn-secondary" onClick={e => { e.stopPropagation(); setOpen(true); setAdding(a => !a) }}>+ Add Item</button>} />
-      {open && (
-        <div className="ws-folder-body">
-          {adding && (
-            <div className="ip-add-row">
-              <input placeholder="e.g. Flashcards — fruits" value={title} onChange={e => setTitle(e.target.value)} />
-              <button className="btn-secondary" onClick={pickPhoto} disabled={busy}>{busy ? '…' : photoPath ? '✓ Photo added' : '📷 Add Photo (optional)'}</button>
-              <button className="btn-primary" onClick={save} disabled={!title.trim() && !photoPath}>Save</button>
-            </div>
-          )}
-          <SelectableGrid materials={items} view="icon" onAssignKeys={() => {}}
-            onRemove={id => store.deleteMaterial(id)} onPreview={onPreview}
-            emptyHint="Add physical items you use in person — flashcards, puzzles, toys…" />
-        </div>
-      )}
-    </div>
-  )
+  return materials.filter(m => chainToRoot(m.folderId || null).includes(rootId)).length
 }
 
 // A grid of materials with marquee + multi-select + drop-to-add + drag-out
@@ -339,6 +308,16 @@ export default function Workspace({ store }) {
   const toggle = k => setOpen(o => ({ ...o, [k]: !o[k] }))
   const [noteDrafts, setNoteDrafts] = useState({})   // clientId -> homework note draft
   const [clientView, setClientView] = useState('icon') // icon | list — applies to all client material grids
+  const [libTab, setLibTab] = useState('digital') // digital | inperson — only one library grid visible at a time so drags can't miss
+
+  // The In-Person library is just a real top-level folder — same Finder, same features
+  // (icon/list, folders, tags, drop-then-describe), only difference is which folder it's scoped to.
+  const inPersonFolder = (store.folders || []).find(f => f.name === IN_PERSON_FOLDER_NAME && !f.parentId)
+  const inPersonFolderId = inPersonFolder?.id || null
+  useEffect(() => {
+    if (!store.loaded || inPersonFolderId) return
+    store.addFolder(IN_PERSON_FOLDER_NAME, '#f7a84f', null)
+  }, [store.loaded, inPersonFolderId])
 
   const toggleClientOpen = (id) => setOpenClientIds(prev => {
     const next = new Set(prev)
@@ -536,9 +515,18 @@ export default function Workspace({ store }) {
       <div className="ws-materials"
         onDragStartCapture={() => setDragging(true)}
         onDragEndCapture={() => { setDragging(false); setDragClientId(null) }}>
-        <div className="ws-pane-title">📚 Library <span className="ws-hint-inline">drag onto a client or a folder to add →← </span></div>
-        <InPersonLibrary store={store} onPreview={setPreview} />
-        <FinderView store={store} />
+        <div className="ws-pane-title">
+          📚 Library <span className="ws-hint-inline">drag onto a client or a folder to add →← </span>
+        </div>
+        <div className="fx-viewseg ws-libtabs">
+          <button className={libTab === 'digital' ? 'active' : ''} onClick={() => setLibTab('digital')}>📁 Digital</button>
+          <button className={libTab === 'inperson' ? 'active' : ''} onClick={() => setLibTab('inperson')}>
+            🤝 In-Person <span className="ws-count">{countInFolderTree(store.materials, store.folders || [], inPersonFolderId)}</span>
+          </button>
+        </div>
+        {libTab === 'digital'
+          ? <FinderView store={store} excludeFolderId={inPersonFolderId} />
+          : inPersonFolderId && <FinderView store={store} scopeFolderId={inPersonFolderId} rootLabel="🤝 In-Person" />}
       </div>
 
       {/* Shared preview overlay */}
