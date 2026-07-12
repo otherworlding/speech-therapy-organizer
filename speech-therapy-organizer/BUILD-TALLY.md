@@ -12,10 +12,10 @@ _Last updated: 2026-07-12_
 | Metric | Value |
 |---|---|
 | Development span | 2026-06-18 → 2026-07-12 (~25 calendar days, part-time) |
-| Feature commits | 25 |
-| Hand-written source | ~6,900 lines across 34 files (JSX / JS / CSS) |
-| Full DMG builds run | ~75–85 (both arches across feature rounds + iterative test builds) |
-| Renderer-only builds | ~70 |
+| Feature commits | 26 |
+| Hand-written source | ~7,100 lines across 36 files (JSX / JS / CSS) |
+| Full DMG builds run | ~77–87 (both arches across feature rounds + iterative test builds) |
+| Renderer-only builds | ~72 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
 

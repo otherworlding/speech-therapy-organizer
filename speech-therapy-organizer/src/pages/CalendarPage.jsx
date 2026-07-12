@@ -110,6 +110,7 @@ function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, on
     time: appt.time,
     durationMins: appt.durationMins || 45,
     notes: appt.notes || '',
+    sessionType: appt.sessionType || 'online',
   })
   const [zoomInfo, setZoomInfo] = useState({
     zoomMeetingId: appt.zoomMeetingId || null,
@@ -204,6 +205,14 @@ function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, on
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </label>
+          <label>Session Type
+            <div className="block-preset-row">
+              <button type="button" className={`block-preset ${f.sessionType === 'online' ? 'active' : ''}`}
+                onClick={() => setF(p => ({ ...p, sessionType: 'online' }))}>💻 Online</button>
+              <button type="button" className={`block-preset ${f.sessionType === 'in-person' ? 'active' : ''}`}
+                onClick={() => setF(p => ({ ...p, sessionType: 'in-person' }))}>🤝 In-Person</button>
+            </div>
+          </label>
           <label>Start Time
             <input type="time" value={f.time} onChange={e => setF(p => ({ ...p, time: e.target.value }))} step={300} />
           </label>
@@ -216,7 +225,7 @@ function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, on
               placeholder="Focus areas, reminders…" />
           </label>
 
-          {zoomCreds && (
+          {zoomCreds && f.sessionType === 'online' && (
             <div className="appt-zoom-box">
               {zoomInfo.zoomJoinUrl ? (
                 <div className="appt-zoom-ready">
@@ -495,7 +504,7 @@ export default function CalendarPage({ store }) {
                     <div key={a.id} className="cal-appt" title="Click for details"
                       style={{ top, height, background: clientColor(a.clientId) }}
                       onClick={e => { e.stopPropagation(); setOpenAppt(a) }}>
-                      <span className="cal-appt-time">{fmtTime(a.time)}</span>
+                      <span className="cal-appt-time">{a.sessionType === 'in-person' ? '🤝' : '💻'} {fmtTime(a.time)}</span>
                     </div>
                   )
                 })}

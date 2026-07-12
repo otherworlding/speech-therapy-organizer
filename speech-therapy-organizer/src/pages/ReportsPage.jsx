@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import SessionAttachments from '../components/SessionAttachments'
 
 const IMG_EXT = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i
 const FILE_ICONS = { pdf: '📄', pptx: '📊', ppt: '📊', docx: '📝', doc: '📝', mp4: '🎬', mov: '🎬', avi: '🎬', mp3: '🎵', wav: '🎵', m4a: '🎵' }
@@ -74,6 +75,7 @@ function AddReportModal({ clients, onSave, onCancel }) {
     clientId: clients[0]?.id || '',
     date: new Date().toISOString().slice(0, 10),
     durationMins: 45,
+    sessionType: 'online',
     sessionNotes: '',
     homeworkNotes: '',
   })
@@ -84,9 +86,11 @@ function AddReportModal({ clients, onSave, onCancel }) {
       clientId: f.clientId,
       date: new Date(f.date + 'T12:00:00').toISOString(),
       duration: Number(f.durationMins) * 60,
+      sessionType: f.sessionType,
       sessionNotes: f.sessionNotes,
       homeworkNotes: f.homeworkNotes,
       materialsUsed: [],
+      attachments: [],
       manualEntry: true,
     })
   }
@@ -99,6 +103,14 @@ function AddReportModal({ clients, onSave, onCancel }) {
             <select value={f.clientId} onChange={e => setF(p => ({ ...p, clientId: e.target.value }))}>
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+          </label>
+          <label>Session Type
+            <div className="block-preset-row">
+              <button type="button" className={`block-preset ${f.sessionType === 'online' ? 'active' : ''}`}
+                onClick={() => setF(p => ({ ...p, sessionType: 'online' }))}>💻 Online</button>
+              <button type="button" className={`block-preset ${f.sessionType === 'in-person' ? 'active' : ''}`}
+                onClick={() => setF(p => ({ ...p, sessionType: 'in-person' }))}>🤝 In-Person</button>
+            </div>
           </label>
           <label>Date
             <input type="date" value={f.date} onChange={e => setF(p => ({ ...p, date: e.target.value }))} />
@@ -142,6 +154,7 @@ function SessionCard({ session, client, materials, isOpen, isEditing, onToggle, 
           <div className="report-date">{fmt(session.date)}</div>
         </div>
         <div className="report-stats">
+          <span className="report-stat report-type-badge">{session.sessionType === 'in-person' ? '🤝 In-Person' : '💻 Online'}</span>
           <span className="report-stat">⏱ {dur(session.duration)}</span>
           <span className="report-stat">📚 {(session.materialsUsed || []).length} materials</span>
           {totalTrials > 0 && <span className="report-stat">🎯 {pct(trialTotals)}</span>}
@@ -187,6 +200,12 @@ function SessionCard({ session, client, materials, isOpen, isEditing, onToggle, 
           {session.homeworkFolder && (
             <div className="report-section">
               <button className="ws-reveal" onClick={() => window.api?.revealInFinder(session.homeworkFolder)}>📂 Reveal homework folder</button>
+            </div>
+          )}
+          {(session.attachments || []).length > 0 && (
+            <div className="report-section">
+              <div className="report-section-title">Attachments</div>
+              <SessionAttachments sessionId={session.id} attachments={session.attachments} light />
             </div>
           )}
           <div className="report-actions">

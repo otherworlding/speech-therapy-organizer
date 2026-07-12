@@ -255,6 +255,23 @@ export function useStore() {
   const deleteSession = (id) => {
     persist(tombstone({ ...data, sessions: data.sessions.filter(s => s.id !== id) }, 'sessions', id))
   }
+  // Photos/notes attached directly to a session record (separate from the reusable Materials Library)
+  const addSessionAttachment = (sessionId, attachment) => {
+    persist({
+      ...data,
+      sessions: data.sessions.map(s => s.id === sessionId
+        ? { ...s, attachments: [...(s.attachments || []), { id: uuidv4(), addedAt: now(), ...attachment }], updatedAt: now() }
+        : s)
+    })
+  }
+  const removeSessionAttachment = (sessionId, attachmentId) => {
+    persist({
+      ...data,
+      sessions: data.sessions.map(s => s.id === sessionId
+        ? { ...s, attachments: (s.attachments || []).filter(a => a.id !== attachmentId), updatedAt: now() }
+        : s)
+    })
+  }
 
   // ── Goals ─────────────────────────────────────────────────────────────
   const addGoal = (clientId, goal) => {
@@ -350,7 +367,7 @@ export function useStore() {
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
     assignMaterials, transferClientMaterials, assignHomework, unassignHomework,
     addMaterial, updateMaterial, deleteMaterial, moveMaterials, importTree,
-    addSession, updateSession, deleteSession,
+    addSession, updateSession, deleteSession, addSessionAttachment, removeSessionAttachment,
     addGoal, updateGoal, deleteGoal, addGoalProgress,
     addAppointment, updateAppointment, deleteAppointment,
     addFolder, updateFolder, deleteFolder, dissolveFolder,

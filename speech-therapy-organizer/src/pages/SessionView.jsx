@@ -4,6 +4,7 @@ import TrialCounter from '../components/SessionTools/TrialCounter'
 import SessionTimer from '../components/SessionTools/SessionTimer'
 import TokenBoard from '../components/SessionTools/TokenBoard'
 import ClinicianCues from '../components/SessionTools/ClinicianCues'
+import SessionAttachments from '../components/SessionAttachments'
 
 const CATS = ['Language','Comprehension','Pragmatic','Age']
 const CAT_COLOR = { Language:'#4f8ef7', Comprehension:'#34c97a', Pragmatic:'#f7a84f', Age:'#c97adb' }
@@ -35,9 +36,13 @@ export default function SessionView({ store, clientId, tools, onExit }) {
 
   useEffect(() => {
     // Create session record immediately
-    const s = store.addSession({ clientId, date: new Date().toISOString(), materialsUsed: [], sessionNotes: '', tokensEarned: 0 })
+    const s = store.addSession({ clientId, date: new Date().toISOString(), materialsUsed: [], sessionNotes: '', tokensEarned: 0, sessionType: tools?.sessionType || 'online', attachments: [] })
     sessionIdRef.current = s.id
   }, [])
+
+  // Read the live session record so attachments reflect what's actually persisted
+  const liveSession = store.sessions.find(s => s.id === sessionIdRef.current)
+  const attachments = liveSession?.attachments || []
 
   if (!client) return null
 
@@ -133,6 +138,7 @@ export default function SessionView({ store, clientId, tools, onExit }) {
           <div className="session-client-name">
             <span className="session-avatar">{client.name[0].toUpperCase()}</span>
             {client.name}
+            <span className="session-type-badge">{tools?.sessionType === 'in-person' ? '🤝 In-Person' : '💻 Online'}</span>
           </div>
           <div className="session-tabs">
             <button className={`session-tab ${tab==='mine'?'active':''}`} onClick={()=>setTab('mine')}>
@@ -205,6 +211,15 @@ export default function SessionView({ store, clientId, tools, onExit }) {
                 </label>
               </div>
             )}
+            <SessionAttachments
+              sessionId={sessionIdRef.current}
+              attachments={attachments}
+              onAdd={(a) => store.addSessionAttachment(sessionIdRef.current, a)}
+              onRemove={(id) => store.removeSessionAttachment(sessionIdRef.current, id)}
+              hint={tools?.sessionType === 'in-person' && playlist.length === 0
+                ? 'In-person session — no digital materials used yet. Attach a photo of what you worked on to keep a record.'
+                : null}
+            />
           </div>
         )}
       </div>
@@ -232,7 +247,11 @@ export default function SessionView({ store, clientId, tools, onExit }) {
                 )
               })}
               {playlist.length === 0 && (
-                <div className="playlist-empty">No materials — switch to Library to add some</div>
+                <div className="playlist-empty">
+                  {tools?.sessionType === 'in-person'
+                    ? 'No digital materials — that\'s fine for in-person. Use Attachments in the tools panel to log photos of what was used.'
+                    : 'No materials — switch to Library to add some'}
+                </div>
               )}
             </div>
           )}

@@ -530,6 +530,40 @@ ipcMain.handle('homework:create-folder', async (_, { clientName, dateStr, filePa
   }
 })
 
+const IMAGE_EXTS_CHECK = /\.(jpg|jpeg|png|gif|bmp|webp|heic)$/i
+const TEXT_EXTS_CHECK = /\.(txt|md|rtf)$/i
+
+// Copy a dropped photo/note/document into that session's own attachments folder —
+// separate from the reusable Materials Library, since these are one-off session records.
+ipcMain.handle('session:add-attachment', (_, { sessionId, srcPath }) => {
+  try {
+    const dir = path.join(DATA_DIR, 'session-attachments', sessionId)
+    fs.mkdirSync(dir, { recursive: true })
+    const filename = path.basename(srcPath)
+    const dest = path.join(dir, filename)
+    fs.copyFileSync(srcPath, dest)
+    const kind = IMAGE_EXTS_CHECK.test(filename) ? 'image' : TEXT_EXTS_CHECK.test(filename) ? 'text' : 'file'
+    return { success: true, filePath: dest, filename, kind }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+ipcMain.handle('session:remove-attachment', (_, filePath) => {
+  try { if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath) } catch {}
+  return true
+})
+// Broader picker for session attachments — photos (incl. iPhone HEIC) and quick notes/docs
+ipcMain.handle('attachment:pick', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      { name: 'Photos & Notes', extensions: ['jpg','jpeg','png','heic','gif','webp','txt','md','rtf','pdf'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  })
+  return result.canceled ? [] : result.filePaths
+})
+
 // ── Zoom API (Server-to-Server OAuth) ──────────────────────────────────
 const https = require('https')
 

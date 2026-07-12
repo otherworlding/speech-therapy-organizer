@@ -5,6 +5,7 @@ const DURATIONS = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 9
 
 export default function SessionSetup({ client, onStart, onCancel }) {
   const [tools, setTools] = useState({
+    sessionType: 'online',
     timer: true, timerMins: 45,
     trials: false,
     tokens: false, tokenGoal: 5,
@@ -25,6 +26,13 @@ export default function SessionSetup({ client, onStart, onCancel }) {
             <h2>Start Session</h2>
             <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{client.name}</div>
           </div>
+        </div>
+
+        <div className="setup-type-row">
+          <button type="button" className={`open-mode-btn ${tools.sessionType === 'online' ? 'active' : ''}`}
+            onClick={() => set('sessionType', 'online')}>💻 Online</button>
+          <button type="button" className={`open-mode-btn ${tools.sessionType === 'in-person' ? 'active' : ''}`}
+            onClick={() => set('sessionType', 'in-person')}>🤝 In-Person</button>
         </div>
 
         <p className="setup-subtitle">Choose which tools to use in this session:</p>
