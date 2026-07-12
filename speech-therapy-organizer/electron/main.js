@@ -62,14 +62,16 @@ function createWindow() {
 }
 
 // Embedded YouTube players reject requests whose Origin is file:// (what a packaged
-// Electron app loads from) with "Error 153". Make those requests look like they came
-// from youtube.com itself, same fix used by other Electron apps embedding YouTube.
+// Electron app loads from) with "Error 153". Spoof the Origin/Referer only on the
+// player/config requests (youtube.com, ytimg.com, youtube-nocookie.com) — NOT on
+// googlevideo.com, which serves the actual video stream and rejects a spoofed
+// origin on those raw media requests (that was causing Error 152).
 function fixYouTubeEmbedOrigin() {
   session.defaultSession.webRequest.onBeforeSendHeaders(
-    { urls: ['*://*.youtube.com/*', '*://*.ytimg.com/*', '*://*.youtube-nocookie.com/*', '*://*.googlevideo.com/*'] },
+    { urls: ['*://*.youtube.com/*', '*://*.ytimg.com/*', '*://*.youtube-nocookie.com/*'] },
     (details, callback) => {
-      details.requestHeaders['Origin'] = 'https://www.youtube.com'
-      details.requestHeaders['Referer'] = 'https://www.youtube.com/'
+      details.requestHeaders['Origin'] = 'https://www.youtube-nocookie.com'
+      details.requestHeaders['Referer'] = 'https://www.youtube-nocookie.com/'
       callback({ requestHeaders: details.requestHeaders })
     }
   )
