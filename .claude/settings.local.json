@@ -117,7 +117,10 @@
       "Bash(pkill -f \"electron .\")",
       "Bash(pkill -f \"wait-on\")",
       "Bash(lsof -nP -iTCP:5173,5174,5175,5176 -sTCP:LISTEN)",
-      "Bash(pkill -f \"node_modules/electron/dist/Electron.app\")"
+      "Bash(pkill -f \"node_modules/electron/dist/Electron.app\")",
+      "Bash(open \"release/mac-arm64/Speech Therapy Organizer.app\")",
+      "Bash(osascript -e 'tell application \"Speech Therapy Organizer\" to quit')",
+      "Bash(pkill -f \"Speech Therapy Organizer.app\")"
     ]
   }
 }
