@@ -72,6 +72,24 @@ export function useStore() {
       )
     })
   }
+  // Homework list per client (curated set to send home)
+  const assignHomework = (clientId, materialIds) => {
+    persist({
+      ...data,
+      clients: data.clients.map(c =>
+        c.id === clientId ? { ...c, homeworkIds: Array.from(new Set([...(c.homeworkIds || []), ...materialIds])) } : c
+      )
+    })
+  }
+  const unassignHomework = (clientId, materialId) => {
+    persist({
+      ...data,
+      clients: data.clients.map(c =>
+        c.id === clientId ? { ...c, homeworkIds: (c.homeworkIds || []).filter(id => id !== materialId) } : c
+      )
+    })
+  }
+
   // Copy or move a client's whole assigned material list to another client
   const transferClientMaterials = (fromId, toId, { move = false } = {}) => {
     const from = data.clients.find(c => c.id === fromId)
@@ -252,7 +270,7 @@ export function useStore() {
     folders: data.folders || [],
     loaded,
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
-    assignMaterials, transferClientMaterials,
+    assignMaterials, transferClientMaterials, assignHomework, unassignHomework,
     addMaterial, updateMaterial, deleteMaterial, moveMaterials, importTree,
     addSession, updateSession, deleteSession,
     addGoal, updateGoal, deleteGoal, addGoalProgress,

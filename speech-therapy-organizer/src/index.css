@@ -339,9 +339,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .ws-none { padding: 4px 2px 8px; }
 
 /* Client detail */
-.ws-detail { border-top: 1px solid var(--border); padding-top: 12px; }
+.ws-detail { border-top: 1px solid var(--border); padding-top: 8px; }
 .ws-section-title { font-size: 12px; font-weight: 700; color: var(--text); margin: 14px 0 8px; display: flex; align-items: center; gap: 6px; }
 .ws-section-title:first-child { margin-top: 0; }
+
+/* Collapsible folder headers */
+.ws-folderhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 4px; border-radius: 7px; }
+.ws-folderhead:hover { background: var(--bg); }
+.ws-folderhead-main { display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1; min-width: 0; }
+.ws-folderhead.sub { margin-left: 10px; }
+.ws-folderhead.sub .ws-folder-label { font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.ws-caret { font-size: 9px; color: var(--text-muted); width: 12px; }
+.ws-folder-icon { font-size: 15px; }
+.ws-folder-label { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-folder-body { margin-left: 6px; padding-left: 6px; border-left: 1px solid var(--border); }
+.ws-archive { margin-left: 12px; padding: 4px 0 8px; }
+.ws-chip-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+
+/* Homework share menu */
+.ws-share { position: relative; }
+.ws-share-btn { font-size: 12px; padding: 4px 12px; }
+.ws-share-menu { position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.18); z-index: 30; display: flex; flex-direction: column; overflow: hidden; min-width: 150px; }
+.ws-share-menu button { border: none; background: none; text-align: left; padding: 9px 14px; font-size: 13px; cursor: pointer; }
+.ws-share-menu button:hover { background: var(--bg); }
 .ws-count { font-size: 11px; color: var(--text-muted); background: var(--bg); border-radius: 10px; padding: 1px 7px; }
 /* Grid (like the materials pane) so there's empty space + gaps to start a marquee */
 .ws-assigned { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; align-content: start; border: 1.5px dashed var(--border); border-radius: 9px; padding: 10px; min-height: 150px; transition: border-color 0.12s, background 0.12s; user-select: none; }
