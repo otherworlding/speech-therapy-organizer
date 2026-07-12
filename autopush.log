@@ -13445,3 +13445,9 @@ To https://github.com/otherworlding/speech-therapy-organizer.git
 To https://github.com/otherworlding/speech-therapy-organizer.git
    112417b..973baab  main -> main
 2026-07-12 03:55 — pushed changes
+[main acd0a46] Auto-save: 2026-07-12 04:25
+ 12 files changed, 221 insertions(+), 10 deletions(-)
+ create mode 100644 speech-therapy-organizer/src/components/SessionAttachments.jsx
+To https://github.com/otherworlding/speech-therapy-organizer.git
+   973baab..acd0a46  main -> main
+2026-07-12 04:25 — pushed changes

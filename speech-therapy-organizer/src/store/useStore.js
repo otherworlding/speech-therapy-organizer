@@ -354,6 +354,23 @@ export function useStore() {
   const deleteAppointment = (id) => {
     persist(tombstone({ ...data, appointments: (data.appointments || []).filter(a => a.id !== id) }, 'appointments', id))
   }
+  // Planning/review photos+notes attached to an in-person appointment (before or after it happens)
+  const addAppointmentAttachment = (appointmentId, attachment) => {
+    persist({
+      ...data,
+      appointments: (data.appointments || []).map(a => a.id === appointmentId
+        ? { ...a, attachments: [...(a.attachments || []), { id: uuidv4(), addedAt: now(), ...attachment }], updatedAt: now() }
+        : a)
+    })
+  }
+  const removeAppointmentAttachment = (appointmentId, attachmentId) => {
+    persist({
+      ...data,
+      appointments: (data.appointments || []).map(a => a.id === appointmentId
+        ? { ...a, attachments: (a.attachments || []).filter(x => x.id !== attachmentId), updatedAt: now() }
+        : a)
+    })
+  }
 
   return {
     clients: data.clients,
@@ -370,6 +387,7 @@ export function useStore() {
     addSession, updateSession, deleteSession, addSessionAttachment, removeSessionAttachment,
     addGoal, updateGoal, deleteGoal, addGoalProgress,
     addAppointment, updateAppointment, deleteAppointment,
+    addAppointmentAttachment, removeAppointmentAttachment,
     addFolder, updateFolder, deleteFolder, dissolveFolder,
     updateSettings,
     previewMerge, applyMerged,

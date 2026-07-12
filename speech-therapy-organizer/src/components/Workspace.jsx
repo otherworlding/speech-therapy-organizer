@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import FinderView from './FinderView'
 import FileViewer from './FileViewer'
+import SessionAttachments from './SessionAttachments'
+
+const INPERSON_FOLDER_ID = '__inperson-lib__'
 
 const IMG_EXT = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i
 const FILE_ICONS = { pdf: '📄', pptx: '📊', ppt: '📊', docx: '📝', doc: '📝', mp4: '🎬', mov: '🎬', avi: '🎬', mp3: '🎵', wav: '🎵', m4a: '🎵' }
@@ -33,7 +36,7 @@ function groupByWeek(sessions) {
 function MiniThumb({ m }) {
   if (m.type === 'youtube' && m.videoId) return <span className="ws-mini-thumb"><img src={`https://img.youtube.com/vi/${m.videoId}/hqdefault.jpg`} alt="" onError={e => { e.target.style.display = 'none' }} /></span>
   if (m.filePath && IMG_EXT.test(m.filePath)) return <span className="ws-mini-thumb"><img src={`file://${m.filePath}`} alt="" /></span>
-  const icon = m.type === 'youtube' ? '▶' : m.type === 'folder' ? '📁' : m.type === 'html-game' ? '🎮' : (FILE_ICONS[extOf(m.filePath)] || '📎')
+  const icon = m.type === 'youtube' ? '▶' : m.type === 'folder' ? '📁' : m.type === 'html-game' ? '🎮' : m.type === 'physical' ? '🤝' : (FILE_ICONS[extOf(m.filePath)] || '📎')
   return <span className="ws-mini-icon">{icon}</span>
 }
 
@@ -63,7 +66,49 @@ function kindLabel(m) {
   if (m.type === 'youtube') return 'YouTube video'
   if (m.type === 'folder') return 'Folder'
   if (m.type === 'html-game') return 'Interactive'
+  if (m.type === 'physical') return 'Physical item'
   return KIND_BY_EXT[extOf(m.filePath)] || (extOf(m.filePath) ? extOf(m.filePath).toUpperCase() : 'File')
+}
+
+// Shared (not per-client) library of physical/in-person materials — name and/or a photo, no digital file required
+function InPersonLibrary({ store, onPreview }) {
+  const [open, setOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [title, setTitle] = useState('')
+  const [photoPath, setPhotoPath] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const items = store.materials.filter(m => m.type === 'physical')
+
+  const pickPhoto = async () => {
+    const paths = await window.api.pickAttachmentFiles()
+    if (paths?.[0]) { setBusy(true); const dest = await window.api.copyToLibrary(paths[0]); setPhotoPath(dest); setBusy(false) }
+  }
+  const save = () => {
+    if (!title.trim()) return
+    store.addMaterial({ type: 'physical', title: title.trim(), filePath: photoPath, folderId: INPERSON_FOLDER_ID, category: 'In-Person', tags: [] })
+    setTitle(''); setPhotoPath(null); setAdding(false)
+  }
+
+  return (
+    <div className="ws-inperson-lib">
+      <FolderHead open={open} onToggle={() => setOpen(o => !o)} icon="🤝" label="In-Person Materials" count={items.length}
+        right={<button className="btn-secondary" onClick={e => { e.stopPropagation(); setOpen(true); setAdding(a => !a) }}>+ Add Item</button>} />
+      {open && (
+        <div className="ws-folder-body">
+          {adding && (
+            <div className="ip-add-row">
+              <input placeholder="e.g. Flashcards — fruits" value={title} onChange={e => setTitle(e.target.value)} />
+              <button className="btn-secondary" onClick={pickPhoto} disabled={busy}>{busy ? '…' : photoPath ? '✓ Photo added' : '📷 Add Photo (optional)'}</button>
+              <button className="btn-primary" onClick={save} disabled={!title.trim()}>Save</button>
+            </div>
+          )}
+          <SelectableGrid materials={items} view="icon" onAssignKeys={() => {}}
+            onRemove={id => store.deleteMaterial(id)} onPreview={onPreview}
+            emptyHint="Add physical items you use in person — flashcards, puzzles, toys…" />
+        </div>
+      )}
+    </div>
+  )
 }
 
 // A grid of materials with marquee + multi-select + drop-to-add + drag-out
@@ -225,6 +270,54 @@ function AddFromSession({ materials, onAdd }) {
   )
 }
 
+function apptDateTime(a) {
+  const [h, m] = (a.time || '00:00').split(':').map(Number)
+  const d = new Date(a.date + 'T00:00:00')
+  d.setHours(h, m, 0, 0)
+  return d
+}
+function apptWhen(a) {
+  return apptDateTime(a).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' +
+    apptDateTime(a).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+// One in-person appointment row — collapsible, editable attachments, with a per-mode hint/prompt
+function InPersonApptRow({ appt, store, mode }) {
+  const [open, setOpen] = useState(mode !== 'archive')
+  const attachments = appt.attachments || []
+  const hint = mode === 'upcoming'
+    ? 'Planning — drop photos or notes of what you intend to use.'
+    : mode === 'review'
+      ? 'What did you use in this session? Drop photos or notes, or skip if you\'d rather not log it.'
+      : null
+  return (
+    <div className="ip-row">
+      <div className="ip-row-head" onClick={() => setOpen(o => !o)}>
+        <span className="ws-caret">{open ? '▾' : '▸'}</span>
+        <span className="ip-row-when">{apptWhen(appt)}</span>
+        {mode === 'review' && <span className="ip-badge ip-badge-review">Needs review</span>}
+        {mode === 'archive' && appt.attachmentsSkipped && attachments.length === 0 && <span className="ip-badge">Skipped</span>}
+        {attachments.length > 0 && <span className="ws-count">{attachments.length}</span>}
+        {mode === 'review' && (
+          <button className="btn-secondary ip-skip" onClick={e => { e.stopPropagation(); store.updateAppointment(appt.id, { attachmentsSkipped: true }) }}>
+            Skip
+          </button>
+        )}
+      </div>
+      {open && (
+        <SessionAttachments
+          sessionId={appt.id}
+          attachments={attachments}
+          light
+          hint={hint}
+          onAdd={a => store.addAppointmentAttachment(appt.id, a)}
+          onRemove={id => store.removeAppointmentAttachment(appt.id, id)}
+        />
+      )}
+    </div>
+  )
+}
+
 function ArchiveChip({ mat, title, onPreview }) {
   return (
     <button className="ws-chip-mat" draggable={!!mat}
@@ -241,7 +334,7 @@ export default function Workspace({ store }) {
   const [dragging, setDragging] = useState(false)
   const [preview, setPreview] = useState(null)
   const [fs, setFs] = useState(false)
-  const [open, setOpen] = useState({ session: true, sessionThis: true, sessionPrev: false, homework: true, hwThis: true, hwPast: false })
+  const [open, setOpen] = useState({ session: true, sessionThis: true, sessionPrev: false, homework: true, hwThis: true, hwPast: false, inperson: true, ipUpcoming: true, ipReview: true, ipArchive: false })
   const toggle = k => setOpen(o => ({ ...o, [k]: !o[k] }))
   const [noteDrafts, setNoteDrafts] = useState({})   // clientId -> homework note draft
   const [clientView, setClientView] = useState('icon') // icon | list — applies to all client material grids
@@ -267,6 +360,15 @@ export default function Workspace({ store }) {
     const thisWeekLabel = weekLabel(new Date().toISOString()).replace('Week of ', '')
     const noteDraft = noteDrafts[client.id] ?? (client.homeworkNote || '')
     const setNoteDraft = (val) => setNoteDrafts(prev => ({ ...prev, [client.id]: val }))
+
+    const inPersonAppts = (store.appointments || [])
+      .filter(a => a.clientId === client.id && a.sessionType === 'in-person' && a.type !== 'block')
+      .sort((a, b) => apptDateTime(a) - apptDateTime(b))
+    const nowDt = new Date()
+    const upcomingAppts = inPersonAppts.filter(a => apptDateTime(a) >= nowDt)
+    const pastAppts = inPersonAppts.filter(a => apptDateTime(a) < nowDt)
+    const reviewAppts = pastAppts.filter(a => !a.attachmentsSkipped && (a.attachments || []).length === 0)
+    const archivedAppts = pastAppts.filter(a => a.attachmentsSkipped || (a.attachments || []).length > 0).reverse()
 
     return (
           <div className="ws-detail">
@@ -301,6 +403,41 @@ export default function Workspace({ store }) {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* IN-PERSON — only shows once an in-person session is scheduled for this client */}
+            {inPersonAppts.length > 0 && (
+              <>
+                <FolderHead open={open.inperson} onToggle={() => toggle('inperson')} icon="🤝" label="In-Person" />
+                {open.inperson && (
+                  <div className="ws-folder-body">
+                    <FolderHead sub open={open.ipUpcoming} onToggle={() => toggle('ipUpcoming')} icon="📂" label="Upcoming" count={upcomingAppts.length} />
+                    {open.ipUpcoming && (
+                      <div className="ip-list">
+                        {upcomingAppts.length === 0 && <div className="ws-none">No upcoming in-person sessions.</div>}
+                        {upcomingAppts.map(a => <InPersonApptRow key={a.id} appt={a} store={store} mode="upcoming" />)}
+                      </div>
+                    )}
+                    {reviewAppts.length > 0 && (
+                      <>
+                        <FolderHead sub open={open.ipReview} onToggle={() => toggle('ipReview')} icon="📁" label="Needs Review" count={reviewAppts.length} />
+                        {open.ipReview && (
+                          <div className="ip-list">
+                            {reviewAppts.map(a => <InPersonApptRow key={a.id} appt={a} store={store} mode="review" />)}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <FolderHead sub open={open.ipArchive} onToggle={() => toggle('ipArchive')} icon="📁" label="Previous In-Person Sessions" count={archivedAppts.length} />
+                    {open.ipArchive && (
+                      <div className="ip-list">
+                        {archivedAppts.length === 0 && <div className="ws-none">Nothing logged yet.</div>}
+                        {archivedAppts.map(a => <InPersonApptRow key={a.id} appt={a} store={store} mode="archive" />)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             {/* HOMEWORK */}
@@ -399,6 +536,7 @@ export default function Workspace({ store }) {
         onDragStartCapture={() => setDragging(true)}
         onDragEndCapture={() => { setDragging(false); setDragClientId(null) }}>
         <div className="ws-pane-title">📚 Library <span className="ws-hint-inline">drag onto a client or a folder to add →← </span></div>
+        <InPersonLibrary store={store} onPreview={setPreview} />
         <FinderView store={store} />
       </div>
 
