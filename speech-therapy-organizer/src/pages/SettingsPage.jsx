@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import SyncMergeModal, { buildSyncPayload, isSyncPayload } from '../components/SyncMergeModal'
 
 const MARKETPLACE_URL = 'https://marketplace.zoom.us/develop/create'
 
@@ -97,6 +98,76 @@ function BackupsCard() {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+function SyncCard({ store }) {
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState(null)
+  const [mergeData, setMergeData] = useState(null)   // parsed remote data awaiting the preview modal
+  const [emailDraft, setEmailDraft] = useState(store.settings?.syncEmail || '')
+
+  const exportSync = async () => {
+    setBusy(true)
+    const res = await window.api.syncExport(JSON.stringify(buildSyncPayload(store.rawData)))
+    setBusy(false)
+    if (res.success) setStatus(`✓ Sync file saved to ${res.path} and revealed in Finder — safe to email or AirDrop, it only contains client/material info, not the files themselves.`)
+    else if (!res.canceled) setStatus(`⚠ ${res.error}`)
+  }
+
+  const sendSync = async () => {
+    setBusy(true)
+    const res = await window.api.syncExportQuick(JSON.stringify(buildSyncPayload(store.rawData)))
+    setBusy(false)
+    if (!res.success) { setStatus(`⚠ ${res.error}`); return }
+    const to = encodeURIComponent(store.settings?.syncEmail || '')
+    const subject = encodeURIComponent('Speech Therapy Organizer — Sync File')
+    const body = encodeURIComponent(`Attached is my latest sync file. Drag it in from the folder that just opened, then attach it here before sending.\n\nOn the receiving computer: drop this file onto the Materials Library, or use Settings → Import & Merge Sync File.`)
+    window.api.openExternal(`mailto:${to}?subject=${subject}&body=${body}`)
+    setStatus(`✓ Sync file revealed in Finder and an email draft opened — drag the file into the email before sending.`)
+  }
+
+  const pickSyncFile = async () => {
+    setBusy(true)
+    const res = await window.api.syncImport()
+    setBusy(false)
+    if (!res.success) { if (!res.canceled) setStatus(`⚠ ${res.error}`); return }
+    if (!isSyncPayload(res.data)) { setStatus('⚠ That file doesn\'t look like a Speech Org sync file.'); return }
+    setMergeData(res.data)
+    setStatus(null)
+  }
+
+  return (
+    <div className="settings-card">
+      <div className="settings-card-header"><h2>🔄 Sync Between Two Machines</h2></div>
+      <p className="settings-note">
+        For two machines that already share the same material files (e.g. copied once via a full
+        backup). This exchanges just the small client/session/tag information — a merge that keeps
+        anything new or changed on <em>either</em> side. Nothing is ever silently deleted; a
+        material or client is only removed if it was explicitly deleted more recently than any
+        edit to it. <strong>Drop a sync file straight onto the Library and the app recognizes it</strong> —
+        no need to hunt for the import button.
+      </p>
+
+      <label style={{ display: 'block', marginBottom: 10 }}>Send sync files to
+        <input type="email" value={emailDraft} onChange={e => setEmailDraft(e.target.value)}
+          onBlur={() => { if (emailDraft !== (store.settings?.syncEmail || '')) store.updateSettings({ syncEmail: emailDraft.trim() }) }}
+          placeholder="the-other-computer-owner@example.com" style={{ maxWidth: 360 }} />
+      </label>
+
+      {status && <div className="fx-status" style={{ marginBottom: 10 }}>{status}</div>}
+
+      <div className="backup-actions">
+        <button className="btn-primary" onClick={sendSync} disabled={busy || !emailDraft.trim()}>✉️ Send Sync File</button>
+        <button className="btn-secondary" onClick={exportSync} disabled={busy}>📤 Export Sync File</button>
+        <button className="btn-secondary" onClick={pickSyncFile} disabled={busy}>📥 Import & Merge Sync File…</button>
+      </div>
+
+      {mergeData && (
+        <SyncMergeModal store={store} remoteData={mergeData}
+          onClose={(applied) => { setMergeData(null); if (applied) setStatus('✓ Merged — this device now has everything from both sides.') }} />
       )}
     </div>
   )
@@ -284,6 +355,9 @@ export default function SettingsPage({ store }) {
 
       {/* ── Backups ── */}
       <BackupsCard />
+
+      {/* ── Sync between machines ── */}
+      <SyncCard store={store} />
     </div>
   )
 }

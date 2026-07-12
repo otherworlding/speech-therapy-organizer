@@ -5,19 +5,32 @@ track it, offset it, and learn to code more efficiently. Measured metrics are
 reliable; the energy (kWh) figures are **honest estimates with wide error bars**,
 not precise measurements.
 
-_Last updated: 2026-07-11_
+_Last updated: 2026-07-12_
 
 ## Measured facts
 
 | Metric | Value |
 |---|---|
-| Development span | 2026-06-18 → 2026-07-11 (~24 calendar days, part-time) |
-| Feature commits | 21 |
-| Hand-written source | ~5,800 lines across 32 files (JSX / JS / CSS) |
-| Full DMG builds run | ~65–75 (both arches across feature rounds + iterative test builds) |
-| Renderer-only builds | ~55 |
+| Development span | 2026-06-18 → 2026-07-12 (~25 calendar days, part-time) |
+| Feature commits | 25 |
+| Hand-written source | ~6,900 lines across 34 files (JSX / JS / CSS) |
+| Full DMG builds run | ~75–85 (both arches across feature rounds + iterative test builds) |
+| Renderer-only builds | ~70 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 3 (2026-07-12): Data safety — crash-safe saves, backups, and merge sync
+Atomic writes + corruption recovery, automatic daily backups with restore, full
+portable backup/restore (zip), a real merge-sync system (timestamped records +
+tombstones, tested against 4 scenarios before any UI was built), a non-blocking
+async folder import with a live progress bar, a top-level React error boundary,
+and drop-to-recognize sync files with a saved-email quick-send flow.
+
+**Footprint note:** this round front-loaded correctness — the merge algorithm
+was unit-tested standalone (plain Node script, no Electron build needed) before
+any UI work, which caught a real scoping bug for free. Only one arm64 build was
+needed to verify the full round (smoke-tested every major screen via CDP) before
+the single closing Intel build — the cheapest round yet per feature shipped.
 
 ### Round 2 (2026-07-11): Finder rebuild + dual-pane workspace
 Materials rebuilt as a Finder (icon/list, recursive folder import, thumbnails,

@@ -2,6 +2,21 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import FileViewer from './FileViewer'
 import { isExternalFile, externalLabel, youTubeId } from '../utils/fileTypes'
+import SyncMergeModal, { isSyncPayload } from './SyncMergeModal'
+
+// If exactly one .json file was dropped, check whether it's a recognized sync file —
+// if so, hand it back so the caller can open the merge preview instead of importing it.
+async function detectSyncFile(dropped) {
+  if (dropped.length !== 1 || dropped[0].isDir) return null
+  const p = dropped[0].path
+  if (!p.toLowerCase().endsWith('.json')) return null
+  try {
+    const buf = await window.api.readFileBinary(p)
+    const text = new TextDecoder().decode(new Uint8Array(buf))
+    const parsed = JSON.parse(text)
+    return isSyncPayload(parsed) ? parsed : null
+  } catch { return null }
+}
 
 // First-page PDF thumbnails, rendered once and cached by file path
 const pdfThumbCache = new Map()
@@ -120,17 +135,27 @@ export default function FinderView({ store }) {
   const [dragOverFolder, setDragOverFolder] = useState(null)
   const [rootDragOver, setRootDragOver] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState(null) // { done, total, filename } | { current, of } for flat lists
   const [status, setStatus] = useState(null)         // last drop/import message
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [renaming, setRenaming] = useState(null)     // folder id
   const [inspectId, setInspectId] = useState(null)   // material id whose details panel is open
   const [linkOpen, setLinkOpen] = useState(false)    // YouTube-link modal
   const [smartView, setSmartView] = useState(null)   // 'recent' | 'pinned' | null
+  const [syncDropData, setSyncDropData] = useState(null)  // a recognized sync file dropped onto the Library
   const rootRef = useRef(null)
   const anchorRef = useRef(null)          // last-clicked key, for Shift-range selection
   const visibleKeysRef = useRef([])       // ordered keys currently on screen
   const [marquee, setMarquee] = useState(null)   // rubber-band rectangle {left,top,w,h}
   const marqueeMoved = useRef(false)             // did the marquee actually drag?
+
+  // Live progress from the main process during a folder-tree copy (genuinely non-blocking now)
+  useEffect(() => {
+    if (!isElectron || !window.api.onImportProgress) return
+    return window.api.onImportProgress(({ done, total, filename }) => {
+      setImportProgress({ done, total, filename })
+    })
+  }, [])
 
   const folders = store.folders || []
   const currentFolderId = path.length ? path[path.length - 1] : null
@@ -164,15 +189,21 @@ export default function FinderView({ store }) {
   // ── Import (files + recursive folders), no tagging gate ──
   const importDropped = useCallback(async (dropped, targetFolderId) => {
     if (!dropped.length) { setStatus('⚠ Drop produced no readable file paths.'); return }
+    // A recognized sync file gets routed to the merge preview instead of being imported as a material
+    const syncPayload = await detectSyncFile(dropped)
+    if (syncPayload) { setSyncDropData(syncPayload); return }
     setImporting(true)
+    setImportProgress(null)
     let files = 0, trees = 0
-    for (let { isDir, path: p } of dropped) {
+    for (let i = 0; i < dropped.length; i++) {
+      let { isDir, path: p } = dropped[i]
       if (isDir === null) { try { isDir = await window.api.isDirectory(p) } catch { isDir = false } }
       if (isDir) {
-        const res = await window.api.importFolderTree(p)
+        const res = await window.api.importFolderTree(p)   // main process streams live progress via onImportProgress
         if (res?.success) { store.importTree(shapeTree(res.tree), targetFolderId); trees++ }
         else setStatus(`⚠ Could not import folder: ${res?.error || 'unknown error'}`)
       } else {
+        setImportProgress({ current: i + 1, of: dropped.length, filename: p.split('/').pop() })
         const dest = await window.api.copyToLibrary(p)
         store.addMaterial({
           title: stripExt(p.split('/').pop()), filePath: dest, folderId: targetFolderId,
@@ -182,6 +213,7 @@ export default function FinderView({ store }) {
       }
     }
     setImporting(false)
+    setImportProgress(null)
     setStatus(`✓ Imported ${files ? `${files} file${files>1?'s':''}` : ''}${files&&trees?' · ':''}${trees ? `${trees} folder${trees>1?'s':''}` : ''}`.trim())
     setTimeout(() => setStatus(null), 4000)
   }, [store])
@@ -472,7 +504,23 @@ export default function FinderView({ store }) {
         onDrop={onRootDrop}>
 
         {marquee && <div className="fx-marquee" style={{ left: marquee.left, top: marquee.top, width: marquee.w, height: marquee.h }} />}
-        {importing && <div className="fx-importing-badge">⏳ Importing…</div>}
+        {importing && (
+          <div className="fx-importing-badge">
+            {importProgress ? (
+              <>
+                <div className="fx-import-text">
+                  ⏳ Importing {importProgress.filename ? `“${importProgress.filename}”` : '…'}
+                  {' '}{(importProgress.done ?? importProgress.current) || 0} / {(importProgress.total ?? importProgress.of) || '?'}
+                </div>
+                <div className="fx-import-bar-bg">
+                  <div className="fx-import-bar-fill" style={{
+                    width: `${Math.min(100, Math.round((((importProgress.done ?? importProgress.current) || 0) / Math.max(1, (importProgress.total ?? importProgress.of) || 1)) * 100))}%`
+                  }} />
+                </div>
+              </>
+            ) : <div className="fx-import-text">⏳ Importing…</div>}
+          </div>
+        )}
 
         {searchHits && <div className="fx-section">{searchHits.length} result{searchHits.length!==1?'s':''} for “{search.trim()}”</div>}
         {smartMaterials && !searchHits && (
@@ -518,6 +566,12 @@ export default function FinderView({ store }) {
           store.addMaterial({ type: 'youtube', title, url, videoId, folderId: currentFolderId, category: 'Language', tags: [] })
           setLinkOpen(false)
         }} onCancel={() => setLinkOpen(false)} />
+      )}
+
+      {/* Recognized sync file dropped onto the Library */}
+      {syncDropData && (
+        <SyncMergeModal store={store} remoteData={syncDropData}
+          onClose={(applied) => { setSyncDropData(null); setStatus(applied ? '✓ Merged from dropped sync file' : null); if (applied) setTimeout(() => setStatus(null), 4000) }} />
       )}
 
       {/* Preview */}

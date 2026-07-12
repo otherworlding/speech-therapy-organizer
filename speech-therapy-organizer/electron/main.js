@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, session } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const { execFile } = require('child_process')
 const path = require('path')
 const fs = require('fs')
@@ -238,6 +238,50 @@ ipcMain.handle('backup:import', async () => {
   }
 })
 
+// ── Lightweight sync file: just the small metadata (clients, materials list, sessions,
+// calendar, tags, folders) — no file content. Small enough to email between two machines
+// that already share the same material files. The renderer does the actual merge.
+ipcMain.handle('sync:export', async (_, dataJson) => {
+  try {
+    const result = await dialog.showSaveDialog({
+      defaultPath: path.join(os.homedir(), 'Desktop', `SpeechOrg-Sync-${new Date().toISOString().slice(0,10)}.json`),
+      filters: [{ name: 'Sync File', extensions: ['json'] }],
+    })
+    if (result.canceled || !result.filePath) return { success: false, canceled: true }
+    fs.writeFileSync(result.filePath, dataJson, 'utf8')
+    shell.showItemInFolder(result.filePath)
+    return { success: true, path: result.filePath }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+// Fast path for the "Send" button: no save dialog, always writes to a fixed spot on
+// Desktop so attaching it to an email is one motion (export → reveal → attach).
+ipcMain.handle('sync:export-quick', (_, dataJson) => {
+  try {
+    const dest = path.join(os.homedir(), 'Desktop', `SpeechOrg-Sync-${new Date().toISOString().slice(0,10)}.json`)
+    fs.writeFileSync(dest, dataJson, 'utf8')
+    shell.showItemInFolder(dest)
+    return { success: true, path: dest }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+ipcMain.handle('sync:import', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Sync File', extensions: ['json'] }],
+    })
+    if (result.canceled || !result.filePaths.length) return { success: false, canceled: true }
+    const raw = fs.readFileSync(result.filePaths[0], 'utf8')
+    const parsed = JSON.parse(raw)
+    return { success: true, data: parsed }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+
 // File pick dialog
 ipcMain.handle('file:pick', async () => {
   const result = await dialog.showOpenDialog({
@@ -290,35 +334,58 @@ ipcMain.handle('file:exists', (_, filePath) => fs.existsSync(filePath))
 // Recursively import a dropped folder, preserving its full subfolder structure.
 // Copies files into a mirrored tree under the library and returns a nested
 // { name, files:[{filename,filePath}], folders:[...] } tree for the renderer.
-ipcMain.handle('folder:import-tree', async (_, srcFolder) => {
-  const libRoot = path.join(DATA_DIR, 'files', 'imported_' + Date.now())
-  fs.mkdirSync(libRoot, { recursive: true })
+// Quick pre-pass: count files so the progress bar can show a real percentage
+async function countFiles(dir) {
+  let count = 0
+  let entries
+  try { entries = await fs.promises.readdir(dir, { withFileTypes: true }) } catch { return 0 }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue
+    const p = path.join(dir, entry.name)
+    if (entry.isDirectory()) count += await countFiles(p)
+    else if (entry.isFile()) count++
+  }
+  return count
+}
 
-  function walk(srcDir, destDir) {
+// Fully async — every await yields back to Node's event loop between files, so this
+// no longer freezes the whole app during a large import, and can report real progress.
+ipcMain.handle('folder:import-tree', async (event, srcFolder) => {
+  const libRoot = path.join(DATA_DIR, 'files', 'imported_' + Date.now())
+  await fs.promises.mkdir(libRoot, { recursive: true })
+
+  const total = await countFiles(srcFolder)
+  let done = 0
+  const sender = event.sender
+
+  async function walk(srcDir, destDir) {
     const node = { name: path.basename(srcDir), files: [], folders: [] }
     let entries
-    try { entries = fs.readdirSync(srcDir, { withFileTypes: true }) } catch { return node }
+    try { entries = await fs.promises.readdir(srcDir, { withFileTypes: true }) } catch { return node }
     entries.sort((a, b) => a.name.localeCompare(b.name))
     for (const entry of entries) {
       if (entry.name.startsWith('.')) continue           // skip .DS_Store etc.
       const srcPath = path.join(srcDir, entry.name)
       if (entry.isDirectory()) {
         const childDest = path.join(destDir, entry.name)
-        fs.mkdirSync(childDest, { recursive: true })
-        node.folders.push(walk(srcPath, childDest))
+        await fs.promises.mkdir(childDest, { recursive: true })
+        node.folders.push(await walk(srcPath, childDest))
       } else if (entry.isFile()) {
         const destPath = path.join(destDir, entry.name)
         try {
-          fs.copyFileSync(srcPath, destPath)
+          await fs.promises.copyFile(srcPath, destPath)
           node.files.push({ filename: entry.name, filePath: destPath })
         } catch {}
+        done++
+        if (!sender.isDestroyed()) sender.send('import:progress', { done, total, filename: entry.name })
       }
     }
     return node
   }
 
   try {
-    return { success: true, tree: walk(srcFolder, libRoot) }
+    const tree = await walk(srcFolder, libRoot)
+    return { success: true, tree }
   } catch (e) {
     return { success: false, error: e.message }
   }

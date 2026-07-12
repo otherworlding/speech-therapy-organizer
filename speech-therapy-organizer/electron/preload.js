@@ -1,5 +1,12 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
+// Fired repeatedly during a folder import so the renderer can show a real progress bar
+function onImportProgress(callback) {
+  const handler = (_event, payload) => callback(payload)
+  ipcRenderer.on('import:progress', handler)
+  return () => ipcRenderer.removeListener('import:progress', handler)
+}
+
 contextBridge.exposeInMainWorld('api', {
   // Electron 32 removed File.path — this is the supported way to get a dropped file's path
   getFilePath: (file) => webUtils.getPathForFile(file),
@@ -34,4 +41,8 @@ contextBridge.exposeInMainWorld('api', {
   restoreAutoBackup: (filename) => ipcRenderer.invoke('backup:restore-auto', filename),
   backupExport: () => ipcRenderer.invoke('backup:export'),
   backupImport: () => ipcRenderer.invoke('backup:import'),
+  syncExport: (dataJson) => ipcRenderer.invoke('sync:export', dataJson),
+  syncExportQuick: (dataJson) => ipcRenderer.invoke('sync:export-quick', dataJson),
+  syncImport: () => ipcRenderer.invoke('sync:import'),
+  onImportProgress,
 })
