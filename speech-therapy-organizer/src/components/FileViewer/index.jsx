@@ -71,7 +71,7 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen 
         {type === 'youtube' && (
           <div className="youtube-viewer">
             <iframe
-              src={`https://www.youtube.com/embed/${material.videoId}`}
+              src={`https://www.youtube.com/embed/${material.videoId}?origin=https%3A%2F%2Fwww.youtube.com`}
               title={material.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

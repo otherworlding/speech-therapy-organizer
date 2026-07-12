@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, session } = require('electron')
 const { execFile } = require('child_process')
 const path = require('path')
 const fs = require('fs')
@@ -61,7 +61,21 @@ function createWindow() {
   else win.loadFile(path.join(__dirname, '../dist/index.html'))
 }
 
-app.whenReady().then(createWindow)
+// Embedded YouTube players reject requests whose Origin is file:// (what a packaged
+// Electron app loads from) with "Error 153". Make those requests look like they came
+// from youtube.com itself, same fix used by other Electron apps embedding YouTube.
+function fixYouTubeEmbedOrigin() {
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['*://*.youtube.com/*', '*://*.ytimg.com/*', '*://*.youtube-nocookie.com/*', '*://*.googlevideo.com/*'] },
+    (details, callback) => {
+      details.requestHeaders['Origin'] = 'https://www.youtube.com'
+      details.requestHeaders['Referer'] = 'https://www.youtube.com/'
+      callback({ requestHeaders: details.requestHeaders })
+    }
+  )
+}
+
+app.whenReady().then(() => { fixYouTubeEmbedOrigin(); createWindow() })
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 
