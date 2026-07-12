@@ -25,13 +25,39 @@ function findLibreOffice() {
 const isDev = !app.isPackaged
 const DATA_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'SpeechTherapyOrganizer')
 const DATA_FILE = path.join(DATA_DIR, 'data.json')
+const FILES_DIR = path.join(DATA_DIR, 'files')
+const BACKUPS_DIR = path.join(DATA_DIR, 'backups')
+const MAX_DAILY_BACKUPS = 30
 const IMAGE_EXTS = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
 }
+function ensureBackupsDir() {
+  if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true })
+}
 
 const EMPTY_DATA = { clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [] }
+
+// Write-then-rename so a crash mid-save can never leave a half-written, corrupted data.json
+function atomicWriteJSON(filePath, obj) {
+  const tmp = filePath + '.tmp'
+  fs.writeFileSync(tmp, JSON.stringify(obj, null, 2))
+  fs.renameSync(tmp, filePath)
+}
+
+// If data.json is unreadable, recover from the newest daily backup instead of silently
+// starting from a blank slate (which would then get saved over the real data).
+function recoverFromLatestBackup() {
+  try {
+    ensureBackupsDir()
+    const files = fs.readdirSync(BACKUPS_DIR).filter(f => f.startsWith('data-') && f.endsWith('.json')).sort()
+    if (!files.length) return null
+    const latest = files[files.length - 1]
+    const d = JSON.parse(fs.readFileSync(path.join(BACKUPS_DIR, latest), 'utf8'))
+    return { ...EMPTY_DATA, ...d }
+  } catch { return null }
+}
 
 function loadData() {
   ensureDataDir()
@@ -39,12 +65,37 @@ function loadData() {
   try {
     const d = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
     return { ...EMPTY_DATA, ...d }
-  } catch { return { ...EMPTY_DATA } }
+  } catch (e) {
+    console.error('data.json failed to parse — recovering from latest backup:', e.message)
+    return recoverFromLatestBackup() || { ...EMPTY_DATA }
+  }
 }
 
 function saveData(data) {
   ensureDataDir()
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2))
+  atomicWriteJSON(DATA_FILE, data)
+}
+
+// One dated snapshot per calendar day, pruned to the newest MAX_DAILY_BACKUPS
+function dailyBackupIfNeeded() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) return
+    ensureBackupsDir()
+    const today = new Date().toISOString().slice(0, 10)
+    const target = path.join(BACKUPS_DIR, `data-${today}.json`)
+    if (!fs.existsSync(target)) fs.copyFileSync(DATA_FILE, target)
+    const files = fs.readdirSync(BACKUPS_DIR).filter(f => f.startsWith('data-') && f.endsWith('.json')).sort()
+    const excess = files.length - MAX_DAILY_BACKUPS
+    if (excess > 0) files.slice(0, excess).forEach(f => { try { fs.unlinkSync(path.join(BACKUPS_DIR, f)) } catch {} })
+  } catch (e) { console.error('daily backup failed:', e.message) }
+}
+
+function listAutoBackups() {
+  ensureBackupsDir()
+  return fs.readdirSync(BACKUPS_DIR)
+    .filter(f => f.startsWith('data-') && f.endsWith('.json'))
+    .sort().reverse()
+    .map(f => ({ filename: f, date: f.slice(5, 15) }))
 }
 
 function createWindow() {
@@ -95,8 +146,97 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 
 // Data
-ipcMain.handle('data:load', () => loadData())
+ipcMain.handle('data:load', () => {
+  const d = loadData()
+  dailyBackupIfNeeded()  // once-per-day snapshot of the state we just loaded
+  return d
+})
 ipcMain.handle('data:save', (_, data) => { saveData(data); return true })
+
+// List available daily auto-backups
+ipcMain.handle('backup:list-auto', () => listAutoBackups())
+
+// Restore one daily snapshot (only replaces data.json — material files are untouched)
+ipcMain.handle('backup:restore-auto', (_, filename) => {
+  try {
+    const src = path.join(BACKUPS_DIR, filename)
+    if (!fs.existsSync(src)) return { success: false, error: 'Backup file not found' }
+    // Safety net: snapshot current state before overwriting, in case of a wrong restore
+    if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, path.join(BACKUPS_DIR, `pre-restore-${Date.now()}.json`))
+    const d = JSON.parse(fs.readFileSync(src, 'utf8'))
+    atomicWriteJSON(DATA_FILE, { ...EMPTY_DATA, ...d })
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+
+// Full portable backup: zip data.json + all material files to a location the user picks
+ipcMain.handle('backup:export', async () => {
+  try {
+    const JSZip = require('jszip')
+    const result = await dialog.showSaveDialog({
+      defaultPath: path.join(os.homedir(), 'Desktop', `SpeechTherapyOrganizer-Backup-${new Date().toISOString().slice(0,10)}.zip`),
+      filters: [{ name: 'Backup Archive', extensions: ['zip'] }],
+    })
+    if (result.canceled || !result.filePath) return { success: false, canceled: true }
+
+    const zip = new JSZip()
+    if (fs.existsSync(DATA_FILE)) zip.file('data.json', fs.readFileSync(DATA_FILE))
+
+    function addDir(dir, zipFolder) {
+      if (!fs.existsSync(dir)) return
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name)
+        if (entry.isDirectory()) addDir(full, zipFolder.folder(entry.name))
+        else zipFolder.file(entry.name, fs.readFileSync(full))
+      }
+    }
+    addDir(FILES_DIR, zip.folder('files'))
+
+    const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
+    fs.writeFileSync(result.filePath, buffer)
+    return { success: true, path: result.filePath }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
+
+// Restore a full portable backup zip — replaces data.json and the files/ folder
+ipcMain.handle('backup:import', async () => {
+  try {
+    const JSZip = require('jszip')
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Backup Archive', extensions: ['zip'] }],
+    })
+    if (result.canceled || !result.filePaths.length) return { success: false, canceled: true }
+
+    // Safety net: snapshot current state before overwriting
+    ensureBackupsDir()
+    if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, path.join(BACKUPS_DIR, `pre-restore-${Date.now()}.json`))
+
+    const zip = await JSZip.loadAsync(fs.readFileSync(result.filePaths[0]))
+    const dataEntry = zip.file('data.json')
+    if (!dataEntry) return { success: false, error: 'This file is not a valid backup (no data.json inside).' }
+    const parsed = JSON.parse(await dataEntry.async('string'))
+    atomicWriteJSON(DATA_FILE, { ...EMPTY_DATA, ...parsed })
+
+    ensureDataDir()
+    if (!fs.existsSync(FILES_DIR)) fs.mkdirSync(FILES_DIR, { recursive: true })
+    const entries = Object.keys(zip.files).filter(k => k.startsWith('files/') && !zip.files[k].dir)
+    for (const key of entries) {
+      const rel = key.slice('files/'.length)
+      const dest = path.join(FILES_DIR, rel)
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      const content = await zip.files[key].async('nodebuffer')
+      fs.writeFileSync(dest, content)
+    }
+    return { success: true, filesRestored: entries.length }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+})
 
 // File pick dialog
 ipcMain.handle('file:pick', async () => {

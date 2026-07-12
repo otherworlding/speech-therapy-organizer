@@ -75,6 +75,25 @@ function kindLabel(m) {
   return KIND_BY_EXT[extOf(m.filePath)] || (extOf(m.filePath) ? extOf(m.filePath).toUpperCase() : 'File')
 }
 
+// Render items in growing chunks instead of all at once — keeps a folder with
+// hundreds of tiles smooth by only mounting thumbnails as the user scrolls near them.
+const CHUNK = 60
+function useIncrementalRender(totalLength, resetKey) {
+  const [count, setCount] = useState(CHUNK)
+  const sentinelRef = useRef(null)
+  useEffect(() => { setCount(CHUNK) }, [resetKey])
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) setCount(c => Math.min(c + CHUNK, totalLength))
+    }, { rootMargin: '600px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [totalLength])
+  return { count, sentinelRef }
+}
+
 function thumbFor(m) {
   if (m.type === 'html-game') return { icon: '🎮' }
   if (m.type === 'folder') {
@@ -106,6 +125,7 @@ export default function FinderView({ store }) {
   const [renaming, setRenaming] = useState(null)     // folder id
   const [inspectId, setInspectId] = useState(null)   // material id whose details panel is open
   const [linkOpen, setLinkOpen] = useState(false)    // YouTube-link modal
+  const [smartView, setSmartView] = useState(null)   // 'recent' | 'pinned' | null
   const rootRef = useRef(null)
   const anchorRef = useRef(null)          // last-clicked key, for Shift-range selection
   const visibleKeysRef = useRef([])       // ordered keys currently on screen
@@ -305,10 +325,28 @@ export default function FinderView({ store }) {
   // Details/tagging panel is opened explicitly via the ⓘ button — NOT on selection,
   // so selecting/dragging a material never gets blocked by the panel.
   const inspectMaterial = inspectId ? store.materials.find(m => m.id === inspectId) : null
-  // Ordered list of on-screen keys, used for Shift-click range selection
-  visibleKeysRef.current = searchHits
-    ? searchHits.map(m => 'm:' + m.id)
-    : [...hereFolders.map(f => 'f:' + f.id), ...hereMaterials.map(m => 'm:' + m.id)]
+
+  // Recent / Pinned quick-access — flat lists spanning every folder
+  const smartMaterials = smartView === 'recent'
+    ? sortMaterials(store.materials.filter(m => m.lastOpened)).sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0)).slice(0, 200)
+    : smartView === 'pinned'
+      ? sortMaterials(store.materials.filter(m => m.pinned))
+      : null
+
+  // Unified ordered list (folders first, like Finder) — drives both selection order and rendering
+  const orderedItems = searchHits
+    ? searchHits.map(m => ({ type: 'material', obj: m }))
+    : smartMaterials
+      ? smartMaterials.map(m => ({ type: 'material', obj: m }))
+      : [...hereFolders.map(f => ({ type: 'folder', obj: f })), ...hereMaterials.map(m => ({ type: 'material', obj: m }))]
+
+  // Ordered list of on-screen keys, used for Shift-click range selection (full logical order, not just rendered)
+  visibleKeysRef.current = orderedItems.map(it => (it.type === 'folder' ? 'f:' : 'm:') + it.obj.id)
+
+  // Render in growing chunks so a folder/Recent/Pinned list with hundreds of items stays smooth
+  const resetKey = `${currentFolderId}|${search}|${smartView}|${sortKey}|${sortDir}`
+  const { count: renderCount, sentinelRef } = useIncrementalRender(orderedItems.length, resetKey)
+  const visibleItems = orderedItems.slice(0, renderCount)
 
   // ── Renderers for a folder + a material (shared by icon & list) ──
   const folderNode = (f) => {
@@ -319,7 +357,7 @@ export default function FinderView({ store }) {
       <div key={key} draggable data-key={key}
         className={`fx-item fx-folder ${view} ${sel ? 'sel' : ''} ${dragOverFolder === f.id ? 'drop-target' : ''}`}
         onClick={e => { e.stopPropagation(); toggleSelect(e, key) }}
-        onDoubleClick={() => { clearSelect(); setPath(p => [...p, f.id]) }}
+        onDoubleClick={() => { clearSelect(); setSmartView(null); setPath(p => [...p, f.id]) }}
         onDragStart={e => onItemDragStart(e, key)}
         onDragOver={e => { e.preventDefault(); setDragOverFolder(f.id) }}
         onDragLeave={() => setDragOverFolder(d => d === f.id ? null : d)}
@@ -348,6 +386,8 @@ export default function FinderView({ store }) {
         onDoubleClick={() => openPreview(m)}
         onDragStart={e => onItemDragStart(e, key)}>
         {m.colorLabel && <span className="fx-color-dot" style={{ background: m.colorLabel }} />}
+        <button className={`fx-pin ${m.pinned ? 'active' : ''}`} title={m.pinned ? 'Unpin' : 'Pin for quick access'}
+          onClick={e => { e.stopPropagation(); store.updateMaterial(m.id, { pinned: !m.pinned }) }}>📌</button>
         <button className="fx-info-i" title="Details & tags" onClick={e => { e.stopPropagation(); setInspectId(m.id) }}>ⓘ</button>
         <button className="fx-del-x" title="Delete" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>✕</button>
         {t.yt
@@ -372,8 +412,10 @@ export default function FinderView({ store }) {
       {/* Toolbar */}
       <div className="fx-toolbar">
         <div className="fx-crumbs">
-          <button className="fx-crumb" onClick={() => { setPath([]); setSearch('') }}>🏠 Library</button>
-          {path.map((fid, i) => {
+          <button className="fx-crumb" onClick={() => { setPath([]); setSearch(''); setSmartView(null) }}>🏠 Library</button>
+          {smartView === 'recent' && <><span className="fx-crumb-sep">›</span><span className="fx-crumb crumb-current">🕘 Recent</span></>}
+          {smartView === 'pinned' && <><span className="fx-crumb-sep">›</span><span className="fx-crumb crumb-current">📌 Pinned</span></>}
+          {!smartView && path.map((fid, i) => {
             const f = folders.find(x => x.id === fid)
             return <React.Fragment key={fid}><span className="fx-crumb-sep">›</span>
               <button className="fx-crumb" onClick={() => setPath(p => p.slice(0, i + 1))}>
@@ -382,6 +424,10 @@ export default function FinderView({ store }) {
         </div>
         <div className="fx-toolbar-right">
           <input className="fx-search" placeholder="🔍 Search all materials…" value={search} onChange={e => setSearch(e.target.value)} />
+          <div className="fx-quickseg">
+            <button className={smartView === 'recent' ? 'active' : ''} onClick={() => { setPath([]); setSmartView(v => v === 'recent' ? null : 'recent') }}>🕘 Recent</button>
+            <button className={smartView === 'pinned' ? 'active' : ''} onClick={() => { setPath([]); setSmartView(v => v === 'pinned' ? null : 'pinned') }}>📌 Pinned</button>
+          </div>
           <div className="fx-sort">
             <select value={sortKey} onChange={e => { const k = e.target.value; setSortKey(k); setSortDir(k === 'added' || k === 'opened' ? 'desc' : 'asc') }} title="Sort by">
               <option value="name">Name</option>
@@ -428,25 +474,31 @@ export default function FinderView({ store }) {
         {marquee && <div className="fx-marquee" style={{ left: marquee.left, top: marquee.top, width: marquee.w, height: marquee.h }} />}
         {importing && <div className="fx-importing-badge">⏳ Importing…</div>}
 
-        {searchHits ? (
-          <>
-            <div className="fx-section">{searchHits.length} result{searchHits.length!==1?'s':''} for “{search.trim()}”</div>
-            <div className={`fx-grid ${view}`}>{searchHits.map(materialNode)}</div>
-          </>
-        ) : (
-          <div className={`fx-grid ${view}`}>
-            {view === 'list' && (
-              <div className="fx-list-head"><span></span><span>Name</span><span>Kind</span></div>
-            )}
-            {hereFolders.map(folderNode)}
-            {hereMaterials.map(materialNode)}
-            {hereFolders.length === 0 && hereMaterials.length === 0 && (
-              <div className="fx-empty">
-                <div className="fx-empty-icon">📂</div>
-                <p>Drop files or folders here from your computer.<br/>Folders keep their structure. No tagging required.</p>
-              </div>
-            )}
-          </div>
+        {searchHits && <div className="fx-section">{searchHits.length} result{searchHits.length!==1?'s':''} for “{search.trim()}”</div>}
+        {smartMaterials && !searchHits && (
+          <div className="fx-section">{smartView === 'recent' ? '🕘 Recently opened' : '📌 Pinned'} — {smartMaterials.length} item{smartMaterials.length !== 1 ? 's' : ''}</div>
+        )}
+
+        <div className={`fx-grid ${view}`}>
+          {view === 'list' && (
+            <div className="fx-list-head"><span></span><span>Name</span><span>Kind</span></div>
+          )}
+          {visibleItems.map(it => it.type === 'folder' ? folderNode(it.obj) : materialNode(it.obj))}
+          {orderedItems.length === 0 && !searchHits && !smartMaterials && (
+            <div className="fx-empty">
+              <div className="fx-empty-icon">📂</div>
+              <p>Drop files or folders here from your computer.<br/>Folders keep their structure. No tagging required.</p>
+            </div>
+          )}
+          {smartMaterials?.length === 0 && (
+            <div className="fx-empty">
+              <div className="fx-empty-icon">{smartView === 'recent' ? '🕘' : '📌'}</div>
+              <p>{smartView === 'recent' ? 'Nothing opened yet — preview a material and it will show up here.' : 'Nothing pinned yet — click 📌 on a tile to pin it here.'}</p>
+            </div>
+          )}
+        </div>
+        {renderCount < orderedItems.length && (
+          <div ref={sentinelRef} className="fx-loadmore">Loading more…</div>
         )}
       </div>
 

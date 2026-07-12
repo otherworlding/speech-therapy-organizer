@@ -30,4 +30,8 @@ contextBridge.exposeInMainWorld('api', {
   htmlHasIndex: (folderPath) => ipcRenderer.invoke('html:has-index', folderPath),
   importHtmlFolder: (folderPath) => ipcRenderer.invoke('html:import-folder', folderPath),
   convertPptxToPdf: (pptxPath) => ipcRenderer.invoke('pptx:convert-pdf', pptxPath),
+  listAutoBackups: () => ipcRenderer.invoke('backup:list-auto'),
+  restoreAutoBackup: (filename) => ipcRenderer.invoke('backup:restore-auto', filename),
+  backupExport: () => ipcRenderer.invoke('backup:export'),
+  backupImport: () => ipcRenderer.invoke('backup:import'),
 })

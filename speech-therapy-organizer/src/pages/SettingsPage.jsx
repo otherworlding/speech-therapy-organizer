@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const MARKETPLACE_URL = 'https://marketplace.zoom.us/develop/create'
 
@@ -23,6 +23,84 @@ const WIZARD_STEPS = [
 ]
 
 function looksValid(v) { return v.trim().length >= 8 && !/\s/.test(v.trim()) }
+
+function fmtBackupDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00')
+  const days = Math.round((Date.now() - d.getTime()) / 86400000)
+  const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  if (days === 0) return `${label} (today)`
+  if (days === 1) return `${label} (yesterday)`
+  return `${label} (${days} days ago)`
+}
+
+function BackupsCard() {
+  const [autoBackups, setAutoBackups] = useState([])
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState(null)
+
+  const refresh = () => window.api?.listAutoBackups().then(list => setAutoBackups(list || []))
+  useEffect(() => { refresh() }, [])
+
+  const restoreAuto = async (filename) => {
+    if (!window.confirm(`Restore the backup from ${filename.slice(5, 15)}? Your current data will be saved as a safety copy first, then replaced.`)) return
+    setBusy(true)
+    const res = await window.api.restoreAutoBackup(filename)
+    setBusy(false)
+    if (res.success) { setStatus('✓ Restored — reload the app to see the restored data.'); refresh() }
+    else setStatus(`⚠ ${res.error}`)
+  }
+
+  const backupNow = async () => {
+    setBusy(true)
+    const res = await window.api.backupExport()
+    setBusy(false)
+    if (res.success) setStatus(`✓ Backup saved to ${res.path}`)
+    else if (!res.canceled) setStatus(`⚠ ${res.error}`)
+  }
+
+  const restoreFromFile = async () => {
+    if (!window.confirm('Restore from a backup file? This replaces all current clients, materials, and sessions. Your current data will be saved as a safety copy first.')) return
+    setBusy(true)
+    const res = await window.api.backupImport()
+    setBusy(false)
+    if (res.success) setStatus(`✓ Restored ${res.filesRestored} file(s) — reload the app to see the restored data.`)
+    else if (!res.canceled) setStatus(`⚠ ${res.error}`)
+  }
+
+  return (
+    <div className="settings-card">
+      <div className="settings-card-header"><h2>🗄 Backups</h2></div>
+      <p className="settings-note">
+        Every change is saved safely (crash-proof writes), and a dated snapshot is kept automatically
+        once a day for the last {autoBackups.length ? '30' : '—'} days. Use "Back Up Everything" for a
+        portable copy — e.g. before switching computers.
+      </p>
+
+      {status && <div className="fx-status" style={{ marginTop: 10 }}>{status}</div>}
+
+      <div className="settings-divider" />
+      <div className="backup-actions">
+        <button className="btn-primary" onClick={backupNow} disabled={busy}>💾 Back Up Everything Now</button>
+        <button className="btn-secondary" onClick={restoreFromFile} disabled={busy}>📂 Restore from Backup File…</button>
+      </div>
+
+      <div className="settings-divider" />
+      <div className="settings-toggle-label" style={{ marginBottom: 8 }}>Automatic Daily Snapshots</div>
+      {autoBackups.length === 0 ? (
+        <p className="settings-note">No automatic snapshots yet — one is taken each day you use the app.</p>
+      ) : (
+        <div className="backup-list">
+          {autoBackups.map(b => (
+            <div key={b.filename} className="backup-row">
+              <span>{fmtBackupDate(b.date)}</span>
+              <button className="btn-secondary" disabled={busy} onClick={() => restoreAuto(b.filename)}>Restore this version</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function SettingsPage({ store }) {
   const zoom = store.settings?.zoom || {}
@@ -203,6 +281,9 @@ export default function SettingsPage({ store }) {
           onBlur={e => { if (e.target.value !== (store.settings?.zoomLink || '')) store.updateSettings({ zoomLink: e.target.value.trim() }) }}
         />
       </div>
+
+      {/* ── Backups ── */}
+      <BackupsCard />
     </div>
   )
 }
