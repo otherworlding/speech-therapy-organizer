@@ -61,23 +61,36 @@ function createWindow() {
   else win.loadFile(path.join(__dirname, '../dist/index.html'))
 }
 
-// Embedded YouTube players reject requests whose Origin is file:// (what a packaged
-// Electron app loads from) with "Error 153". Spoof the Origin/Referer only on the
-// player/config requests (youtube.com, ytimg.com, youtube-nocookie.com) — NOT on
-// googlevideo.com, which serves the actual video stream and rejects a spoofed
-// origin on those raw media requests (that was causing Error 152).
-function fixYouTubeEmbedOrigin() {
-  session.defaultSession.webRequest.onBeforeSendHeaders(
-    { urls: ['*://*.youtube.com/*', '*://*.ytimg.com/*', '*://*.youtube-nocookie.com/*'] },
-    (details, callback) => {
-      details.requestHeaders['Origin'] = 'https://www.youtube-nocookie.com'
-      details.requestHeaders['Referer'] = 'https://www.youtube-nocookie.com/'
-      callback({ requestHeaders: details.requestHeaders })
-    }
-  )
+// YouTube's embedded IFRAME player rejects a file:// parent origin (Error 153/152 —
+// there's no legitimate origin to present). Instead of embedding, open the real
+// YouTube watch page in its own window: a genuine https://youtube.com origin, no
+// embedding restrictions apply, and it shows up as its own window in Zoom's
+// "share a window" picker.
+let youtubeWin = null
+function openYouTubePlayerWindow(event, { videoId, title }) {
+  const url = `https://www.youtube.com/watch?v=${videoId}`
+  const parent = BrowserWindow.fromWebContents(event.sender)
+  const bounds = parent ? parent.getBounds() : { width: 1400, height: 900 }
+
+  if (youtubeWin && !youtubeWin.isDestroyed()) {
+    youtubeWin.loadURL(url)
+    youtubeWin.setTitle(title || 'YouTube')
+    youtubeWin.show()
+    youtubeWin.focus()
+    return
+  }
+
+  youtubeWin = new BrowserWindow({
+    width: bounds.width, height: bounds.height,
+    minWidth: 480, minHeight: 320,
+    title: title || 'YouTube',
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  })
+  youtubeWin.loadURL(url)
+  youtubeWin.on('closed', () => { youtubeWin = null })
 }
 
-app.whenReady().then(() => { fixYouTubeEmbedOrigin(); createWindow() })
+app.whenReady().then(createWindow)
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 
@@ -281,6 +294,9 @@ ipcMain.handle('shell:open-external', (_, url) => {
 
 // Reveal a file/folder in Finder
 ipcMain.handle('shell:reveal', (_, p) => { try { shell.showItemInFolder(p) } catch {} return true })
+
+// Open a YouTube video in its own real window (not embedded) — see openYouTubePlayerWindow above
+ipcMain.handle('youtube:open-player', (event, payload) => { openYouTubePlayerWindow(event, payload); return true })
 
 // Create a dated homework folder for a client with copies of the chosen files
 // and an optional Instructions.txt with the therapist's note

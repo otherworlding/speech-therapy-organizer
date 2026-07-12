@@ -69,13 +69,13 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen 
 
       <div className={`viewer-body ${type === 'folder' || type === 'html-game' ? 'viewer-body-folder' : ''}`}>
         {type === 'youtube' && (
-          <div className="youtube-viewer">
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${material.videoId}?origin=https%3A%2F%2Fwww.youtube-nocookie.com`}
-              title={material.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+          <div className="youtube-launch">
+            <img className="youtube-launch-thumb" src={`https://img.youtube.com/vi/${material.videoId}/hqdefault.jpg`} alt="" onError={e => { e.target.style.display = 'none' }} />
+            <div className="youtube-launch-icon">▶</div>
+            <p className="youtube-launch-hint">Opens in its own window — pick that window when sharing this video over Zoom.</p>
+            <button className="btn-primary" onClick={() => window.api?.openYouTubePlayer({ videoId: material.videoId, title: material.title })}>
+              ▶ Play Video
+            </button>
           </div>
         )}
         {type === 'html-game' && <HtmlGameViewer material={material} />}

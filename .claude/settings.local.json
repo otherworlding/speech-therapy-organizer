@@ -98,7 +98,10 @@
       "Bash(sips -s format pdf /Users/otherworlding/Desktop/DropTest-SpeechApp/Language/Vocabulary/animals.png --out /Users/otherworlding/Desktop/DropTest-SpeechApp/Articulation/R-sounds/r-words.pdf)",
       "Bash(awk '{print $5, $NF}')",
       "Bash(grep -rn \"Content-Security-Policy\\\\|http-equiv\\\\|onHeadersReceived\\\\|webSecurity\" index.html electron/main.js)",
-      "Bash(ls index.html public/index.html)"
+      "Bash(ls index.html public/index.html)",
+      "WebSearch",
+      "WebFetch(domain:til.simonwillison.net)",
+      "WebFetch(domain:simonwillison.net)"
     ]
   }
 }

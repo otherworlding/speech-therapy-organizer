@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('api', {
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
   revealInFinder: (p) => ipcRenderer.invoke('shell:reveal', p),
   createHomeworkFolder: (payload) => ipcRenderer.invoke('homework:create-folder', payload),
+  openYouTubePlayer: (payload) => ipcRenderer.invoke('youtube:open-player', payload),
   zoomTest: (creds) => ipcRenderer.invoke('zoom:test', creds),
   zoomCreateMeeting: (payload) => ipcRenderer.invoke('zoom:create-meeting', payload),
   zoomDeleteMeeting: (payload) => ipcRenderer.invoke('zoom:delete-meeting', payload),
