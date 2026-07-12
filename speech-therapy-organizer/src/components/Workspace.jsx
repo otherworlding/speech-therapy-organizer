@@ -166,6 +166,34 @@ function ShareMenu({ client, materials }) {
   )
 }
 
+// Opt-in picker: add this session's materials to homework (nothing checked by default)
+function AddFromSession({ materials, onAdd }) {
+  const [open, setOpen] = useState(false)
+  const [checked, setChecked] = useState(new Set())
+  const toggle = id => setChecked(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const add = () => { if (checked.size) onAdd([...checked]); setChecked(new Set()); setOpen(false) }
+  return (
+    <div className="ws-share" onClick={e => e.stopPropagation()}>
+      <button className="ws-addsession-btn" disabled={!materials.length} onClick={() => setOpen(o => !o)}>➕ From session</button>
+      {open && (
+        <div className="ws-share-menu ws-addsession-menu">
+          <div className="ws-addsession-title">Add this session's items — none checked by default</div>
+          {materials.length === 0 && <div className="ws-none" style={{ padding: '6px 10px' }}>No session materials.</div>}
+          {materials.map(m => (
+            <label key={m.id} className="ws-addsession-row">
+              <input type="checkbox" checked={checked.has(m.id)} onChange={() => toggle(m.id)} />
+              <span>{m.title}</span>
+            </label>
+          ))}
+          {materials.length > 0 && (
+            <button className="ws-addsession-add" disabled={!checked.size} onClick={add}>Add {checked.size || ''} to homework</button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ArchiveChip({ mat, title, onPreview }) {
   return (
     <button className="ws-chip-mat" draggable={!!mat}
@@ -258,7 +286,9 @@ export default function Workspace({ store }) {
               right={<ShareMenu client={client} materials={homework} />} />
             {open.homework && (
               <div className="ws-folder-body">
-                <FolderHead sub open={open.hwThis} onToggle={() => toggle('hwThis')} icon="📂" label="This Week" count={homework.length} />
+                <FolderHead sub open={open.hwThis} onToggle={() => toggle('hwThis')} icon="📂" label="This Week" count={homework.length}
+                  right={<AddFromSession materials={assigned} onAdd={ids => store.assignHomework(client.id, ids)} />} />
+
                 {open.hwThis && (
                   <SelectableGrid materials={homework}
                     onAssignKeys={ids => store.assignHomework(client.id, ids)}
