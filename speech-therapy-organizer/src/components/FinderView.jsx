@@ -18,14 +18,34 @@ async function detectSyncFile(dropped) {
   } catch { return null }
 }
 
-// First-page PDF thumbnails, rendered once and cached by file path
+// First-page PDF thumbnails, rendered once and cached by file path.
+// PDF rendering does real canvas decode/paint work — mounting dozens at once (e.g.
+// importing a folder with hundreds of files) can stall the main thread on older/slower
+// machines, so a small queue caps how many render concurrently regardless of how many
+// PdfThumb components are mounted at once.
 const pdfThumbCache = new Map()
+const MAX_CONCURRENT_PDF_RENDERS = 2
+let activePdfRenders = 0
+const pdfRenderQueue = []
+function runNextPdfRender() {
+  if (activePdfRenders >= MAX_CONCURRENT_PDF_RENDERS || pdfRenderQueue.length === 0) return
+  activePdfRenders++
+  const job = pdfRenderQueue.shift()
+  job().finally(() => { activePdfRenders--; runNextPdfRender() })
+}
+function queuePdfRender(job) {
+  return new Promise((resolve, reject) => {
+    pdfRenderQueue.push(() => job().then(resolve, reject))
+    runNextPdfRender()
+  })
+}
 function PdfThumb({ filePath }) {
   const [url, setUrl] = useState(() => pdfThumbCache.get(filePath) || null)
   useEffect(() => {
     if (url || !filePath || !window.api) return
     let cancelled = false
-    ;(async () => {
+    queuePdfRender(async () => {
+      if (cancelled) return
       try {
         const buf = await window.api.readFileBinary(filePath)
         const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise
@@ -42,11 +62,11 @@ function PdfThumb({ filePath }) {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7)
         if (!cancelled && dataUrl.startsWith('data:image')) { pdfThumbCache.set(filePath, dataUrl); setUrl(dataUrl) }
       } catch {}
-    })()
+    })
     return () => { cancelled = true }
   }, [filePath])
   return url
-    ? <span className="fx-thumb"><img src={url} alt="" /></span>
+    ? <span className="fx-thumb"><img src={url} alt="" loading="lazy" decoding="async" /></span>
     : <span className="fx-icon">📄</span>
 }
 
@@ -92,7 +112,9 @@ function kindLabel(m) {
 
 // Render items in growing chunks instead of all at once — keeps a folder with
 // hundreds of tiles smooth by only mounting thumbnails as the user scrolls near them.
-const CHUNK = 60
+// Kept small and with a tight lookahead margin so older/slower machines don't end up
+// mounting (and thumbnail-rendering) far more tiles than are actually visible at once.
+const CHUNK = 30
 function useIncrementalRender(totalLength, resetKey) {
   const [count, setCount] = useState(CHUNK)
   const sentinelRef = useRef(null)
@@ -102,7 +124,7 @@ function useIncrementalRender(totalLength, resetKey) {
     if (!el) return
     const obs = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) setCount(c => Math.min(c + CHUNK, totalLength))
-    }, { rootMargin: '600px' })
+    }, { rootMargin: '200px' })
     obs.observe(el)
     return () => obs.disconnect()
   }, [totalLength])

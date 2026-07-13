@@ -120,7 +120,11 @@
       "Bash(pkill -f \"node_modules/electron/dist/Electron.app\")",
       "Bash(open \"release/mac-arm64/Speech Therapy Organizer.app\")",
       "Bash(osascript -e 'tell application \"Speech Therapy Organizer\" to quit')",
-      "Bash(pkill -f \"Speech Therapy Organizer.app\")"
+      "Bash(pkill -f \"Speech Therapy Organizer.app\")",
+      "WebFetch(domain:community.zoom.com)",
+      "WebFetch(domain:support.zoom.com)",
+      "Bash(osascript -e 'tell application \"Finder\" to close every window')",
+      "Bash(grep -n '<img src={`file://' src/components/FinderView.jsx src/components/Workspace.jsx src/components/SessionAttachments.jsx)"
     ]
   }
 }

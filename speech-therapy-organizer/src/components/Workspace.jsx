@@ -193,6 +193,7 @@ function ShareToClient({ sourceClientId, clients, materialIds, onShare, label })
 // Share the current homework set: build folder + WhatsApp / Email / Reveal
 function ShareMenu({ client, materials, note }) {
   const [open, setOpen] = useState(false)
+  const [status, setStatus] = useState(null)
   const dateStr = new Date().toISOString().slice(0, 10)
   const message = () => {
     const lines = materials.map(m => m.type === 'youtube' ? `• ${m.title}: ${m.url}` : `• ${m.title}`)
@@ -201,14 +202,34 @@ function ShareMenu({ client, materials, note }) {
     parts.push('', `Materials:\n${lines.join('\n')}`)
     return parts.join('\n')
   }
+  // Build the folder LAST (after the chat app opens) so Finder ends up on top and
+  // visible instead of getting buried behind WhatsApp/Mail's window — that was the
+  // actual bug: the files were always there, just hidden behind the app that stole focus.
   const buildFolder = async () => {
     const filePaths = materials.flatMap(filesOfMaterial)
     const res = await window.api.createHomeworkFolder({ clientName: client.name, dateStr, filePaths, note })
-    if (res?.success) await window.api.revealInFinder(res.folderPath)
+    if (res?.success) {
+      await window.api.openFile(res.folderPath)   // opens the folder's contents, not just a highlighted icon
+      setStatus(`📂 ${res.count} file${res.count === 1 ? '' : 's'} ready in Finder — drag ${res.count === 1 ? 'it' : 'them'} into the chat to send.`)
+      setTimeout(() => setStatus(null), 8000)
+    }
     return res
   }
-  const whatsApp = async () => { await buildFolder(); const num = (client.whatsapp || client.phone || '').replace(/[^\d]/g, ''); const t = encodeURIComponent(message()); if (num) window.api.openExternal(`https://wa.me/${num}?text=${t}`); else { window.api.copyToClipboard(message()); alert('No WhatsApp number — message copied. Attach files from the folder that opened.') } setOpen(false) }
-  const email = async () => { await buildFolder(); const s = encodeURIComponent(`Home Practice — ${client.name}`); window.api.openExternal(`mailto:${encodeURIComponent(client.email || '')}?subject=${s}&body=${encodeURIComponent(message())}`); setOpen(false) }
+  const whatsApp = async () => {
+    const num = (client.whatsapp || client.phone || '').replace(/[^\d]/g, '')
+    const t = encodeURIComponent(message())
+    if (num) window.api.openExternal(`https://wa.me/${num}?text=${t}`)
+    else window.api.copyToClipboard(message())
+    await buildFolder()
+    if (!num) alert('No WhatsApp number — message copied. Attach files from the folder that opened.')
+    setOpen(false)
+  }
+  const email = async () => {
+    const s = encodeURIComponent(`Home Practice — ${client.name}`)
+    window.api.openExternal(`mailto:${encodeURIComponent(client.email || '')}?subject=${s}&body=${encodeURIComponent(message())}`)
+    await buildFolder()
+    setOpen(false)
+  }
   const reveal = async () => { await buildFolder(); setOpen(false) }
   return (
     <div className="ws-share" onClick={e => e.stopPropagation()}>
@@ -220,6 +241,7 @@ function ShareMenu({ client, materials, note }) {
           <button onClick={reveal}>📂 Reveal folder</button>
         </div>
       )}
+      {status && <div className="ws-share-status">{status}</div>}
     </div>
   )
 }
