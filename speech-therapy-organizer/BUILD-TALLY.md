@@ -12,12 +12,33 @@ _Last updated: 2026-07-12_
 | Metric | Value |
 |---|---|
 | Development span | 2026-06-18 → 2026-07-12 (~25 calendar days, part-time) |
-| Feature commits | 28 |
-| Hand-written source | ~7,300 lines across 35 files (JSX / JS / CSS) |
-| Full DMG builds run | ~79–89 (both arches across feature rounds + iterative test builds) |
-| Renderer-only builds | ~76 |
+| Feature commits | 29 |
+| Hand-written source | ~7,400 lines across 35 files (JSX / JS / CSS) |
+| Full DMG builds run | ~80–90 (both arches across feature rounds + iterative test builds) |
+| Renderer-only builds | ~82 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 5 (2026-07-12): Performance on older hardware + Finder polish
+A user report ("500-item folder freezes and won't scroll") traced back to two causes:
+(1) a legacy pre-rewrite import path that bundled an entire folder into one
+non-navigable, non-throttled preview — fixed with a one-click "Convert to real
+folder" migration that reuses already-copied files, no need to re-locate the
+original folder; (2) PDF thumbnails rendering with no concurrency limit, which
+can stall the main thread on older/slower machines — fixed with a 2-at-a-time
+render queue, smaller incremental-render batches, a tighter scroll-ahead margin,
+and lazy-loading on all thumbnail images. Also fixed: dragging an item out of a
+folder back to the library root had no path (drag targets now include the
+breadcrumb trail, matching Finder's path-bar drag behavior), and the homework
+WhatsApp/Email share was silently burying its "files ready" Finder window behind
+the chat app instead of showing it on top.
+
+**Footprint note:** internal (non-Finder) HTML5 drag interactions can't be
+reliably driven by the automation used to verify these fixes — confirmed via
+direct DOM event dispatch in DevTools instead of relying on synthetic mouse
+drags, avoiding a wasted build/test cycle chasing a tooling limitation rather
+than a real bug. One Intel build this round (user specifically needed Intel
+first, tested via Rosetta), smoke-tested before closing out.
 
 ### Round 4 (2026-07-12): In-person session tracking + unified library
 Per-session (not per-client) online/in-person toggle set at the scheduler, session

@@ -465,6 +465,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .fx-crumbs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .fx-crumb { background: none; border: none; font-size: 14px; color: var(--primary); cursor: pointer; padding: 3px 6px; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
 .fx-crumb:hover { background: var(--bg); }
+.fx-crumb.drop-target { background: #eef4ff; box-shadow: 0 0 0 2px var(--primary) inset; }
 .fx-crumb-sep { color: var(--text-muted); }
 .fx-crumb-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .fx-toolbar-right { display: flex; align-items: center; gap: 8px; }
@@ -687,6 +688,7 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .folder-viewer { display: flex; width: 100%; height: 100%; overflow: hidden; }
 .folder-file-list { width: 220px; flex-shrink: 0; background: rgba(0,0,0,0.3); overflow-y: auto; display: flex; flex-direction: column; }
 .folder-file-list-header { padding: 10px 14px; font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.folder-convert-btn { margin: 10px 14px; font-size: 12px; padding: 8px 10px; text-align: center; }
 .folder-file-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; border-left: 3px solid transparent; transition: background 0.1s; }
 .folder-file-item:hover { background: rgba(255,255,255,0.06); }
 .folder-file-item.active { background: rgba(79,142,247,0.15); border-left-color: var(--primary); }

@@ -35,7 +35,7 @@ function groupByWeek(sessions) {
 
 function MiniThumb({ m }) {
   if (m.type === 'youtube' && m.videoId) return <span className="ws-mini-thumb"><img src={`https://img.youtube.com/vi/${m.videoId}/hqdefault.jpg`} alt="" onError={e => { e.target.style.display = 'none' }} /></span>
-  if (m.filePath && IMG_EXT.test(m.filePath)) return <span className="ws-mini-thumb"><img src={`file://${m.filePath}`} alt="" /></span>
+  if (m.filePath && IMG_EXT.test(m.filePath)) return <span className="ws-mini-thumb"><img src={`file://${m.filePath}`} alt="" loading="lazy" decoding="async" /></span>
   const icon = m.type === 'youtube' ? '▶' : m.type === 'folder' ? '📁' : m.type === 'html-game' ? '🎮' : (FILE_ICONS[extOf(m.filePath)] || '📎')
   return <span className="ws-mini-icon">{icon}</span>
 }
@@ -567,7 +567,8 @@ export default function Workspace({ store }) {
       {preview && (
         <div className="browse-preview-backdrop" onClick={() => { setPreview(null); setFs(false) }}>
           <div className={`browse-preview ${fs ? 'fullscreen' : ''}`} onClick={e => e.stopPropagation()}>
-            <FileViewer material={preview} isFullscreen={fs} onToggleFullscreen={() => setFs(f => !f)} />
+            <FileViewer material={preview} isFullscreen={fs} onToggleFullscreen={() => setFs(f => !f)}
+              store={store} onConverted={() => { setPreview(null); setFs(false) }} />
             <button className="browse-preview-close" onClick={() => { setPreview(null); setFs(false) }}>✕</button>
           </div>
         </div>

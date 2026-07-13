@@ -156,6 +156,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
   const [search, setSearch] = useState('')
   const [dragOverFolder, setDragOverFolder] = useState(null)
   const [rootDragOver, setRootDragOver] = useState(false)
+  const [dragOverCrumb, setDragOverCrumb] = useState(null)   // null | 'root' | folder id — dragging up the breadcrumb trail moves items out of a folder
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState(null) // { done, total, filename } | { current, of } for flat lists
   const [status, setStatus] = useState(null)         // last drop/import message
@@ -385,6 +386,13 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
     if (internal) { moveInto(JSON.parse(internal), currentFolderId); return }
     await importDropped(resolveDrop(e), currentFolderId)  // OS files into current location
   }
+  // Dropping onto a breadcrumb segment moves the dragged item(s) up to that level —
+  // the only way to get something back out of a folder without the hidden ⌘C/⌘V trick.
+  const onCrumbDrop = (e, targetFolderId) => {
+    e.preventDefault(); e.stopPropagation(); setDragOverCrumb(null)
+    const internal = e.dataTransfer.getData('text/finder-keys')
+    if (internal) moveInto(JSON.parse(internal), targetFolderId)
+  }
 
   // ── Search (flat, across this tab's scope only) ──
   const q = search.trim().toLowerCase()
@@ -467,7 +475,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
           : t.pdf
             ? <PdfThumb filePath={t.pdf} />
             : t.img
-              ? <span className="fx-thumb"><img src={`file://${t.img}`} alt="" /></span>
+              ? <span className="fx-thumb"><img src={`file://${t.img}`} alt="" loading="lazy" decoding="async" /></span>
               : <span className="fx-icon">{t.icon}</span>}
         <span className="fx-name">{m.title}</span>
         <span className="fx-sub">
@@ -484,13 +492,22 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
       {/* Toolbar */}
       <div className="fx-toolbar">
         <div className="fx-crumbs">
-          <button className="fx-crumb" onClick={() => { setPath([]); setSearch(''); setSmartView(null) }}>{rootLabel}</button>
+          <button className={`fx-crumb ${dragOverCrumb === 'root' ? 'drop-target' : ''}`}
+            onClick={() => { setPath([]); setSearch(''); setSmartView(null) }}
+            onDragOver={e => { e.preventDefault(); if (path.length) setDragOverCrumb('root') }}
+            onDragLeave={() => setDragOverCrumb(d => d === 'root' ? null : d)}
+            onDrop={e => onCrumbDrop(e, rootId)}>{rootLabel}</button>
           {smartView === 'recent' && <><span className="fx-crumb-sep">›</span><span className="fx-crumb crumb-current">🕘 Recent</span></>}
           {smartView === 'pinned' && <><span className="fx-crumb-sep">›</span><span className="fx-crumb crumb-current">📌 Pinned</span></>}
           {!smartView && path.map((fid, i) => {
             const f = folders.find(x => x.id === fid)
+            const isLast = i === path.length - 1
             return <React.Fragment key={fid}><span className="fx-crumb-sep">›</span>
-              <button className="fx-crumb" onClick={() => setPath(p => p.slice(0, i + 1))}>
+              <button className={`fx-crumb ${dragOverCrumb === fid ? 'drop-target' : ''}`}
+                onClick={() => setPath(p => p.slice(0, i + 1))}
+                onDragOver={e => { e.preventDefault(); if (!isLast) setDragOverCrumb(fid) }}
+                onDragLeave={() => setDragOverCrumb(d => d === fid ? null : d)}
+                onDrop={e => onCrumbDrop(e, fid)}>
                 <span className="fx-crumb-dot" style={{ background: f?.color }} />{f?.name || '?'}</button></React.Fragment>
           })}
         </div>
@@ -618,7 +635,8 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
       {preview && (
         <div className="browse-preview-backdrop" onClick={() => { setPreview(null); setFullscreen(false) }}>
           <div className={`browse-preview ${fullscreen ? 'fullscreen' : ''}`} onClick={e => e.stopPropagation()}>
-            <FileViewer material={preview} isFullscreen={fullscreen} onToggleFullscreen={() => setFullscreen(f => !f)} />
+            <FileViewer material={preview} isFullscreen={fullscreen} onToggleFullscreen={() => setFullscreen(f => !f)}
+              store={store} onConverted={() => { setPreview(null); setFullscreen(false) }} />
             <button className="browse-preview-close" onClick={() => { setPreview(null); setFullscreen(false) }}>✕</button>
           </div>
         </div>

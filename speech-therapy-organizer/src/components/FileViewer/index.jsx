@@ -28,7 +28,7 @@ function getType(material) {
 
 const ZOOMABLE = new Set(['pdf', 'image'])
 
-export default function FileViewer({ material, isFullscreen, onToggleFullscreen }) {
+export default function FileViewer({ material, isFullscreen, onToggleFullscreen, store, onConverted }) {
   const [pageInfo, setPageInfo] = useState(null)
   const [apps, setApps] = useState({ keynote: false, powerpoint: false, libreoffice: false })
   const [zoom, setZoom] = useState(1)
@@ -79,7 +79,7 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen 
           </div>
         )}
         {type === 'html-game' && <HtmlGameViewer material={material} />}
-        {type === 'folder' && <FolderViewer material={material} onPageInfo={handlePageInfo} />}
+        {type === 'folder' && <FolderViewer material={material} onPageInfo={handlePageInfo} store={store} onConverted={onConverted} />}
         {material.openExternal && type !== 'folder' && (
           <div className="viewer-external">
             <div className="viewer-external-icon">↗</div>

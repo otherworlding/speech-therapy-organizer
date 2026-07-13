@@ -21,6 +21,10 @@ function getIcon(filename) {
   return FILE_ICONS[getExt(filename)] || '📎'
 }
 
+function stripExt(name) {
+  return (name || '').replace(/\.[^.]+$/, '')
+}
+
 function FilePreview({ item, onPageInfo }) {
   const ext = getExt(item.filename)
   const fp = item.filePath
@@ -53,14 +57,30 @@ function FilePreview({ item, onPageInfo }) {
   )
 }
 
-export default function FolderViewer({ material, onPageInfo }) {
+// Legacy bundle from before the real Finder tree existed — every file lives in one
+// non-navigable material. "Convert to folder" rebuilds it as a real folder + individual
+// materials (reusing the already-copied files, no need for the original source folder),
+// which fixes both the lack of navigation and the freeze from loading everything at once.
+export default function FolderViewer({ material, onPageInfo, store, onConverted }) {
   const items = material.items || []
   const [idx, setIdx] = useState(0)
+  const [converting, setConverting] = useState(false)
 
   useEffect(() => {
     setIdx(0)
     onPageInfo?.(1, items.length)
   }, [material.id])
+
+  const convertToFolder = () => {
+    if (!store || converting) return
+    setConverting(true)
+    const folder = store.addFolder(material.title, '#4f8ef7', null)
+    items.forEach(item => {
+      store.addMaterial({ title: stripExt(item.filename), filePath: item.filePath, folderId: folder.id, category: 'Language', tags: [] })
+    })
+    store.deleteMaterial(material.id)
+    onConverted?.()
+  }
 
   if (!items.length) return (
     <div className="viewer-empty"><p>This folder is empty.</p></div>
@@ -75,6 +95,11 @@ export default function FolderViewer({ material, onPageInfo }) {
     <div className="folder-viewer">
       <div className="folder-file-list">
         <div className="folder-file-list-header">{material.title}</div>
+        {store && (
+          <button className="btn-primary folder-convert-btn" onClick={convertToFolder} disabled={converting}>
+            {converting ? 'Converting…' : `🔧 Convert to real folder (${items.length} items)`}
+          </button>
+        )}
         {items.map((item, i) => (
           <div
             key={i}
