@@ -40,6 +40,15 @@ function MiniThumb({ m }) {
   return <span className="ws-mini-icon">{icon}</span>
 }
 
+// Where a material lives in the folder tree, e.g. "Articulation › R-sounds" — helps identify
+// an item's location when looking at it from a client's assigned list, away from the Finder tree.
+function folderPath(m, folders) {
+  const parts = []
+  let cur = folders.find(f => f.id === m.folderId)
+  while (cur) { parts.unshift(cur.name); cur = folders.find(f => f.id === cur.parentId) }
+  return parts.join(' › ')
+}
+
 function keysFromDrag(e) {
   const raw = e.dataTransfer.getData('text/finder-keys')
   if (!raw) return []
@@ -82,7 +91,7 @@ function countInFolderTree(materials, folders, rootId) {
 }
 
 // A grid of materials with marquee + multi-select + drop-to-add + drag-out
-function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHint, onDragStateChange, view = 'icon' }) {
+function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHint, onDragStateChange, view = 'icon', folders = [] }) {
   const [sel, setSel] = useState(new Set())
   const [marquee, setMarquee] = useState(null)
   const [dragOver, setDragOver] = useState(false)
@@ -144,17 +153,20 @@ function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHin
       onDragEnd={() => onDragStateChange?.(false)}>
       {marquee && <div className="fx-marquee" style={{ left: marquee.left, top: marquee.top, width: marquee.w, height: marquee.h }} />}
       {materials.length === 0 && <div className="ws-drop-hint">{emptyHint}</div>}
-      {materials.map(m => (
+      {materials.map(m => {
+        const path = folderPath(m, folders)
+        return (
         <div key={m.id} data-id={m.id} className={`ws-assigned-item ${view} ${sel.has(m.id) ? 'sel' : ''}`} draggable
           onDragStart={e => dragStart(e, m.id)}
           onClick={e => { e.stopPropagation(); click(e, m.id) }}
-          onDoubleClick={() => onPreview(m)} title={m.title}>
+          onDoubleClick={() => onPreview(m)} title={path ? `${m.title} — 📁 ${path}` : m.title}>
           <MiniThumb m={m} />
           <span className="ws-assigned-name">{m.title}</span>
+          {view === 'list' && <span className="ws-assigned-path">{path || '—'}</span>}
           {view === 'list' && <span className="ws-assigned-kind">{kindLabel(m)}</span>}
           {onRemove && <button className="ws-unassign" title="Remove" onClick={e => { e.stopPropagation(); onRemove(m.id) }}>✕</button>}
         </div>
-      ))}
+      )})}
     </div>
   )
 }
@@ -360,7 +372,7 @@ export default function Workspace({ store }) {
               <div className="ws-folder-body">
                 <FolderHead sub open={open.sessionThis} onToggle={() => toggle('sessionThis')} icon="📂" label={`This Week — ${thisWeekLabel}`} count={assigned.length} />
                 {open.sessionThis && (
-                  <SelectableGrid materials={assigned} view={clientView}
+                  <SelectableGrid materials={assigned} view={clientView} folders={store.folders || []}
                     onAssignKeys={ids => store.assignMaterials(client.id, ids)}
                     onRemove={id => store.unassignMaterial(client.id, id)}
                     onPreview={setPreview} onDragStateChange={setDragging}
@@ -434,7 +446,7 @@ export default function Workspace({ store }) {
 
                 {open.hwThis && (
                   <>
-                    <SelectableGrid materials={homework} view={clientView}
+                    <SelectableGrid materials={homework} view={clientView} folders={store.folders || []}
                       onAssignKeys={ids => store.assignHomework(client.id, ids)}
                       onRemove={id => store.unassignHomework(client.id, id)}
                       onPreview={setPreview} onDragStateChange={setDragging}
