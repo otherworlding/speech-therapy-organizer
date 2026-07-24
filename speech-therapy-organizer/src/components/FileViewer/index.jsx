@@ -115,9 +115,12 @@ export default function FileViewer({ material, isFullscreen, onToggleFullscreen,
         {!material.openExternal && type === 'pdf' && <PdfViewer filePath={material.filePath} onPageInfo={handlePageInfo} zoom={zoom} />}
         {!material.openExternal && type === 'pptx' && <PptxViewer filePath={material.filePath} onPageInfo={handlePageInfo} />}
         {!material.openExternal && type === 'image' && (
-          <div className="image-viewer" style={{ overflow: zoom > 1 ? 'auto' : 'hidden' }}>
+          <div className={`image-viewer ${zoom !== 1 ? 'zoomed' : ''}`}>
+            {/* CSS zoom (not transform) actually grows layout size, so the container's
+                overflow:auto has real content to scroll into — transform only scales
+                paint, leaving the box the same size and nothing reachable by scrolling. */}
             <img src={`file://${material.filePath}`} alt={material.title} className="viewer-image"
-              style={{ transform: `scale(${zoom})`, transformOrigin: 'center top' }} />
+              style={{ zoom }} />
           </div>
         )}
         {!material.openExternal && type === 'deck' && (

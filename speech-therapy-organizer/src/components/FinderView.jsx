@@ -442,7 +442,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
         onDragOver={e => { e.preventDefault(); setDragOverFolder(f.id) }}
         onDragLeave={() => setDragOverFolder(d => d === f.id ? null : d)}
         onDrop={e => onFolderDrop(e, f)}>
-        <button className="fx-del-x" title="Delete folder" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>✕</button>
+        <button className="fx-del-x" title="Delete folder" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>🗑</button>
         <span className="fx-icon" style={{ color: f.color }}>📁</span>
         {renaming === f.id
           ? <input className="fx-rename" autoFocus defaultValue={f.name}
@@ -469,7 +469,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
         <button className={`fx-pin ${m.pinned ? 'active' : ''}`} title={m.pinned ? 'Unpin' : 'Pin for quick access'}
           onClick={e => { e.stopPropagation(); store.updateMaterial(m.id, { pinned: !m.pinned }) }}>📌</button>
         <button className="fx-info-i" title="Details & tags" onClick={e => { e.stopPropagation(); setInspectId(m.id) }}>ⓘ</button>
-        <button className="fx-del-x" title="Delete" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>✕</button>
+        <button className="fx-del-x" title="Delete" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>🗑</button>
         {t.yt
           ? <span className="fx-thumb fx-yt-thumb"><img src={`https://img.youtube.com/vi/${t.yt}/hqdefault.jpg`} alt="" onError={e => { e.target.style.display = 'none' }} /><span className="fx-yt-play">▶</span></span>
           : t.pdf
@@ -492,6 +492,11 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
       {/* Toolbar */}
       <div className="fx-toolbar">
         <div className="fx-crumbs">
+          {(path.length > 0 || smartView) && (
+            <button className="fx-back-btn" title="Back" onClick={() => {
+              if (smartView) { setSmartView(null) } else { setPath(p => p.slice(0, -1)) }
+            }}>← Back</button>
+          )}
           <button className={`fx-crumb ${dragOverCrumb === 'root' ? 'drop-target' : ''}`}
             onClick={() => { setPath([]); setSearch(''); setSmartView(null) }}
             onDragOver={e => { e.preventDefault(); if (path.length) setDragOverCrumb('root') }}

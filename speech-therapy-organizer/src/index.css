@@ -463,6 +463,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .finder { display: flex; flex-direction: column; gap: 10px; }
 .fx-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .fx-crumbs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.fx-back-btn { background: var(--bg); border: 1px solid var(--border); font-size: 13px; color: var(--text); cursor: pointer; padding: 4px 10px; border-radius: 6px; font-weight: 600; margin-right: 4px; }
+.fx-back-btn:hover { background: var(--surface); border-color: var(--primary); }
 .fx-crumb { background: none; border: none; font-size: 14px; color: var(--primary); cursor: pointer; padding: 3px 6px; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
 .fx-crumb:hover { background: var(--bg); }
 .fx-crumb.drop-target { background: #eef4ff; box-shadow: 0 0 0 2px var(--primary) inset; }
@@ -734,8 +736,12 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .link-preview { display: block; width: 100%; max-width: 320px; border-radius: 8px; margin: 4px 0 12px; }
 
 /* Image / video / audio */
-.image-viewer { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
-.viewer-image { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
+/* Plain block + overflow:auto + margin:auto centering (not flex-centering) — flex
+   align/justify:center famously blocks scrolling into content that overflows past
+   center, which made zoomed images unreachable outside the visible middle. */
+.image-viewer { display: block; width: 100%; height: 100%; overflow: auto; padding: 12px; box-sizing: border-box; }
+.viewer-image { display: block; margin: auto; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
+.image-viewer.zoomed .viewer-image { max-width: none; max-height: none; }
 .image-deck-viewer { display: flex; flex-direction: column; width: 100%; height: 100%; }
 .deck-image { flex: 1; max-width: 100%; max-height: calc(100% - 52px); object-fit: contain; display: block; margin: 0 auto; }
 .video-viewer { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }

@@ -127,7 +127,8 @@
       "Bash(grep -n '<img src={`file://' src/components/FinderView.jsx src/components/Workspace.jsx src/components/SessionAttachments.jsx)",
       "Bash(python3 -c *)",
       "Bash(open \"release/mac/Speech Therapy Organizer.app\")",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(xargs -I{} echo {})"
     ]
   }
 }
