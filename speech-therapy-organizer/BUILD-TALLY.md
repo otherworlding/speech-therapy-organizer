@@ -45,10 +45,11 @@ previous folder level or exits a smart view) and swapped the per-item delete "�
 for a 🗑 trash icon — the existing delete confirmation dialog already covered the
 "warning prompt" ask, no change needed there.
 
-**Footprint note:** entirely a dev-mode fix-and-verify round — CSS/JSX edits plus
-`npx vite build` sanity checks and live DevTools inspection in the already-running
-dev Electron app. No DMG build this round (explicitly held off per user request);
-will fold into the next build when one is due.
+**Footprint note:** fix-and-verify happened entirely in dev mode (CSS/JSX edits,
+`npx vite build` sanity checks, live DevTools inspection) before any packaging.
+Once the fixes were confirmed working, one arm64 build was run and verified, then
+the closing Intel build — both smoke-tested via `ls`/file-size sanity check, no
+wasted rebuilds this round.
 
 ### Round 5 (2026-07-12): Performance on older hardware + Finder polish
 A user report ("500-item folder freezes and won't scroll") traced back to two causes:
