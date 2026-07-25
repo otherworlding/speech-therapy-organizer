@@ -5,7 +5,7 @@ track it, offset it, and learn to code more efficiently. Measured metrics are
 reliable; the energy (kWh) figures are **honest estimates with wide error bars**,
 not precise measurements.
 
-_Last updated: 2026-07-12_
+_Last updated: 2026-07-24_
 
 ## Measured facts
 
@@ -18,6 +18,37 @@ _Last updated: 2026-07-12_
 | Renderer-only builds | ~82 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 6 (2026-07-24): Preview scroll/zoom fix + Finder back vs. delete clarity
+User testing surfaced two real UX bugs: zoomed image/PDF previews couldn't be
+scrolled to reach content past the visible middle, and the only visible "✕" while
+browsing inside a folder was a per-item delete button, easily mistaken for a way
+back. Root-caused the scroll bug through three layered issues, each necessary but
+not sufficient alone: (1) the zoom slider used CSS `transform: scale()`, which only
+repaints — it never grows the element's actual layout box, so there was never real
+overflow to scroll into; switched to the (non-standard but Chromium-supported)
+`zoom` property, which does affect layout size. (2) `.image-viewer` used flex
+`align-items/justify-content: center`, a well-known browser limitation that blocks
+scrolling into content past the centered midpoint; switched to block layout +
+`margin: auto` centering (matching the pattern the already-working PDF viewer
+uses). (3) The actual root cause: `.browse-preview`, the shared modal wrapper used
+by all three preview call sites (FinderView, Workspace, MaterialsBrowser), was
+never a flex container — so `.file-viewer`'s `flex: 1` never applied, and the
+image viewer just grew to match its content instead of clipping at the visible
+modal size. Confirmed via DevTools (`scrollHeight === clientHeight` on the
+container even after fixes 1–2) before finding it. Fixed by making `.browse-preview`
+`display: flex; flex-direction: column`, plus `min-height: 0` down the flex chain.
+Verified live: zoomed image at 300% now shows real horizontal + vertical
+scrollbars and mouse-wheel scroll actually reveals all corners of the image.
+Also added a distinct "← Back" button in the Finder breadcrumb bar (returns to the
+previous folder level or exits a smart view) and swapped the per-item delete "✕"
+for a 🗑 trash icon — the existing delete confirmation dialog already covered the
+"warning prompt" ask, no change needed there.
+
+**Footprint note:** entirely a dev-mode fix-and-verify round — CSS/JSX edits plus
+`npx vite build` sanity checks and live DevTools inspection in the already-running
+dev Electron app. No DMG build this round (explicitly held off per user request);
+will fold into the next build when one is due.
 
 ### Round 5 (2026-07-12): Performance on older hardware + Finder polish
 A user report ("500-item folder freezes and won't scroll") traced back to two causes:

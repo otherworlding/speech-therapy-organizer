@@ -233,7 +233,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .browse-tile-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
 .browse-tile-sub { font-size: 11px; color: var(--text-muted); }
 .browse-preview-backdrop { position: fixed; inset: 0; background: rgba(10,14,25,0.85); display: flex; align-items: center; justify-content: center; z-index: 200; }
-.browse-preview { position: relative; width: 78%; height: 82%; background: var(--session-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.5); }
+.browse-preview { position: relative; width: 78%; height: 82%; background: var(--session-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
 .browse-preview.fullscreen { width: 96%; height: 94%; }
 .browse-preview-close { position: absolute; top: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 14px; }
 
@@ -660,7 +660,7 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .session-fullscreen .session-viewer-col { position: fixed; inset: 0; z-index: 200; background: black; }
 
 /* ── File Viewer ── */
-.file-viewer { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #0a1020; }
+.file-viewer { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #0a1020; min-height: 0; }
 .file-viewer.fullscreen { position: fixed; inset: 0; z-index: 200; }
 .viewer-topbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: rgba(255,255,255,0.04); border-bottom: 1px solid var(--session-border); flex-shrink: 0; }
 /* In any fullscreen viewer the bar reaches the window's top-left, so clear the macOS traffic lights */
@@ -668,7 +668,7 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .viewer-title { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .viewer-pageinfo { font-size: 12px; color: rgba(255,255,255,0.4); }
 .viewer-fs-btn { background: none; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); border-radius: 5px; width: 28px; height: 28px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
-.viewer-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 12px; }
+.viewer-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 12px; min-height: 0; min-width: 0; }
 .viewer-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; color: rgba(255,255,255,0.3); text-align: center; }
 .viewer-loading { display: flex; align-items: center; justify-content: center; gap: 10px; color: rgba(255,255,255,0.5); font-size: 14px; padding: 40px; }
 .viewer-error { color: rgba(255,100,100,0.8); font-size: 14px; text-align: center; padding: 40px; }
@@ -739,7 +739,7 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 /* Plain block + overflow:auto + margin:auto centering (not flex-centering) — flex
    align/justify:center famously blocks scrolling into content that overflows past
    center, which made zoomed images unreachable outside the visible middle. */
-.image-viewer { display: block; width: 100%; height: 100%; overflow: auto; padding: 12px; box-sizing: border-box; }
+.image-viewer { display: block; width: 100%; height: 100%; overflow: auto; padding: 12px; box-sizing: border-box; min-height: 0; min-width: 0; }
 .viewer-image { display: block; margin: auto; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
 .image-viewer.zoomed .viewer-image { max-width: none; max-height: none; }
 .image-deck-viewer { display: flex; flex-direction: column; width: 100%; height: 100%; }
