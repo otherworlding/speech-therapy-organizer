@@ -398,6 +398,19 @@ export default function Workspace({ store }) {
 
     return (
           <div className="ws-detail">
+            {/* MAIN COLLECTION — sits right under the client's name, first thing you see. A
+                month-or-more pool of material dropped in once; This Week and Homework below
+                draw from it by dragging, same as from the Digital library. */}
+            <FolderHead open={open.main} onToggle={() => toggle('main')} icon="🗂" label="Main Collection"
+              count={countInFolderTree(store.materials, store.folders || [], mainCollectionFolderId(client))} />
+            {open.main && (
+              <div className="ws-folder-body ws-main-collection">
+                {mainCollectionFolderId(client)
+                  ? <FinderView store={store} scopeFolderId={mainCollectionFolderId(client)} rootLabel="🗂 Main Collection" />
+                  : <div className="ws-none">Setting up…</div>}
+              </div>
+            )}
+
             {/* SESSION MATERIALS */}
             <FolderHead open={open.session} onToggle={() => toggle('session')} icon="📁" label="Session Materials"
               right={<ShareToClient sourceClientId={client.id} clients={store.clients} materialIds={assigned.map(m => m.id)}
@@ -428,18 +441,6 @@ export default function Workspace({ store }) {
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* MAIN COLLECTION — a month-or-more pool of material dropped in once; This Week
-                and Homework above/below draw from it by dragging, same as from the Digital library. */}
-            <FolderHead open={open.main} onToggle={() => toggle('main')} icon="🗂" label="Main Collection"
-              count={countInFolderTree(store.materials, store.folders || [], mainCollectionFolderId(client))} />
-            {open.main && (
-              <div className="ws-folder-body ws-main-collection">
-                {mainCollectionFolderId(client)
-                  ? <FinderView store={store} scopeFolderId={mainCollectionFolderId(client)} rootLabel="🗂 Main Collection" />
-                  : <div className="ws-none">Setting up…</div>}
               </div>
             )}
 
