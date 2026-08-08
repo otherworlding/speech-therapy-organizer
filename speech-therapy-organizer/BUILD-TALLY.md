@@ -5,7 +5,7 @@ track it, offset it, and learn to code more efficiently. Measured metrics are
 reliable; the energy (kWh) figures are **honest estimates with wide error bars**,
 not precise measurements.
 
-_Last updated: 2026-07-26_
+_Last updated: 2026-08-08_
 
 ## Measured facts
 
@@ -18,6 +18,29 @@ _Last updated: 2026-07-26_
 | Renderer-only builds | ~82 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 8 (2026-08-08): Per-client billing & PDF invoicing
+Added a "🧾 Billing" tab to the Client Detail page (moved there from an earlier plan
+to put it in the Workspace tree, per user feedback): billing settings (flat-rate or
+hourly, billing frequency, bill-to toggle between the client and a saved
+insurance/agency contact), a "+ New Invoice" flow that pulls real session records
+in a date range into itemized line items, and a polished PDF export via the new
+`pdf-lib` dependency (letterhead uses the Settings branding logo/name from the
+previous round). Invoices persist as a new store collection with Mark Paid/Unpaid,
+re-export, and delete. Also added `contactName`/`mailingAddress` fields to the
+client form, used as the invoice bill-to when billing the client directly.
+
+Two real bugs caught during live verification, both fixed before commit: (1) a
+timezone off-by-one — bare `YYYY-MM-DD` date strings parsed as UTC midnight and
+displayed a day early in a timezone behind UTC; fixed by forcing local-midnight
+parsing. (2) The first real PDF export showed long session descriptions visibly
+overlapping the Duration/Rate/Amount columns — the column layout had no reserved
+gap and no truncation; rebuilt with fixed column geometry, right-aligned numeric
+columns, and width-aware ellipsis truncation on the description column, then
+re-verified by reading the regenerated PDF directly.
+
+Deferred: the quarterly/end-of-year tax summary report (totals per client/agency)
+— spec kept in memory for a follow-up round.
 
 ### Round 7 (2026-07-26): Per-client Main Collection folder + custom branding
 Two of three requested features (a third, per-client invoicing, was scoped and

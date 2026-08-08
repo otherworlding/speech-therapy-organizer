@@ -145,7 +145,7 @@ function NewInvoiceModal({ client, store, onClose }) {
     setBusy(true)
     const billToSnapshot = billTo === 'other'
       ? { name: client.billToInfo?.name || 'Insurance/Agency', address: client.billToInfo?.address, contact: client.billToInfo?.contact, reference: client.billToInfo?.reference }
-      : { name: client.name, address: '', contact: client.email || client.phone || '', reference: '' }
+      : { name: client.contactName || client.name, address: client.mailingAddress || '', contact: client.email || client.phone || '', reference: '' }
     const invoice = store.addInvoice({
       clientId: client.id, issueDate: todayIso(), periodStart: start, periodEnd: end,
       billTo, billToSnapshot, lineItems: items, total,

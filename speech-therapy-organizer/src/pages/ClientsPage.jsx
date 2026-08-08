@@ -17,6 +17,7 @@ function ClientForm({ initial, title, submitLabel, onSubmit, onCancel }) {
     email: initial?.email || '', timezone: initial?.timezone || MY_TZ,
     phone: initial?.phone || '', whatsapp: initial?.whatsapp || '',
     preferredContact: initial?.preferredContact || 'email',
+    contactName: initial?.contactName || '', mailingAddress: initial?.mailingAddress || '',
   })
   const [sameAsPhone, setSameAsPhone] = useState(!!initial?.phone && initial?.phone === initial?.whatsapp)
   const submit = (e) => {
@@ -28,6 +29,7 @@ function ClientForm({ initial, title, submitLabel, onSubmit, onCancel }) {
       phone: form.phone.trim(),
       whatsapp: (sameAsPhone ? form.phone : form.whatsapp).trim(),
       preferredContact: form.preferredContact,
+      contactName: form.contactName.trim(), mailingAddress: form.mailingAddress.trim(),
     })
   }
   return (
@@ -41,11 +43,17 @@ function ClientForm({ initial, title, submitLabel, onSubmit, onCancel }) {
           <label>Date of Birth
             <input type="date" value={form.dob} onChange={e => setForm(f => ({ ...f, dob: e.target.value }))} />
           </label>
+          <label>Contact Name <span className="settings-note" style={{ fontWeight: 400 }}>(parent/guardian — used as the invoice bill-to name)</span>
+            <input value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} placeholder="Jane Smith" />
+          </label>
           <label>Parent Email
             <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="parent@example.com" />
           </label>
           <label>Phone Number
             <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 415 555 1234 (include country code)" />
+          </label>
+          <label>Mailing Address <span className="settings-note" style={{ fontWeight: 400 }}>(used on invoices)</span>
+            <textarea value={form.mailingAddress} onChange={e => setForm(f => ({ ...f, mailingAddress: e.target.value }))} rows={2} placeholder="123 Main St, Springfield, IL 62704" />
           </label>
           <label className="checkbox-row">
             <input type="checkbox" checked={sameAsPhone} onChange={e => setSameAsPhone(e.target.checked)} />

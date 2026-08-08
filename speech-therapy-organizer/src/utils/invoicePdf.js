@@ -43,6 +43,20 @@ export async function buildInvoicePdf({ invoice, client, settings }) {
   const text = (str, x, yy, { size = 10, f = font, color = dark } = {}) => {
     page.drawText(String(str ?? ''), { x, y: yy, size, font: f, color })
   }
+  // Right-align text so its right edge lands at `xRight` — used for the numeric columns
+  // so varying-width amounts (RATE, AMOUNT, TOTAL) line up instead of drifting left/right.
+  const textRight = (str, xRight, yy, { size = 10, f = font, color = dark } = {}) => {
+    const s = String(str ?? '')
+    text(s, xRight - f.widthOfTextAtSize(s, size), yy, { size, f, color })
+  }
+  // Truncate with an ellipsis so a long description can never run into the next
+  // column — the actual bug seen in the first real invoice export (overlapping text).
+  const truncateToWidth = (str, maxWidth, f, size) => {
+    let s = String(str ?? '')
+    if (f.widthOfTextAtSize(s, size) <= maxWidth) return s
+    while (s.length > 1 && f.widthOfTextAtSize(s + '…', size) > maxWidth) s = s.slice(0, -1)
+    return s + '…'
+  }
   const hr = (yy) => page.drawLine({ start: { x: MARGIN, y: yy }, end: { x: PAGE_W - MARGIN, y: yy }, thickness: 1, color: line })
 
   // ── Letterhead ──
@@ -66,7 +80,12 @@ export async function buildInvoicePdf({ invoice, client, settings }) {
   y -= 16
   text(billTo.name || client?.name || '', MARGIN, y, { size: 12, f: bold })
   y -= 15
-  const billLines = [billTo.address, billTo.contact, billTo.reference ? `Ref/Policy #: ${billTo.reference}` : null].filter(Boolean)
+  // Address may be a multi-line mailing address (from a textarea) — split it out
+  // into its own lines rather than running it together with contact/reference.
+  const billLines = [
+    ...String(billTo.address || '').split('\n').map(l => l.trim()).filter(Boolean),
+    billTo.contact, billTo.reference ? `Ref/Policy #: ${billTo.reference}` : null,
+  ].filter(Boolean)
   for (const l of billLines) { text(l, MARGIN, y, { size: 10, color: muted }); y -= 14 }
 
   y -= 8
@@ -74,12 +93,21 @@ export async function buildInvoicePdf({ invoice, client, settings }) {
   y -= 26
 
   // ── Line items table ──
-  const col = { date: MARGIN, desc: MARGIN + 80, dur: PAGE_W - MARGIN - 170, rate: PAGE_W - MARGIN - 110, amt: PAGE_W - MARGIN - 50 }
+  // Fixed column geometry with real gaps between columns (the original version packed
+  // DESCRIPTION right up against DURATION/RATE/AMOUNT with no reserved width, so any
+  // description longer than ~2 words visibly overlapped the numeric columns).
+  const usableRight = PAGE_W - MARGIN
+  const col = {
+    date: MARGIN, desc: MARGIN + 75,
+    durRight: usableRight - 155, rateRight: usableRight - 75, amtRight: usableRight,
+  }
+  const descMaxWidth = (col.durRight - 60) - col.desc - 10   // leaves room for the DURATION column itself
+
   text('DATE', col.date, y, { size: 9, f: bold, color: muted })
   text('DESCRIPTION', col.desc, y, { size: 9, f: bold, color: muted })
-  text('DURATION', col.dur, y, { size: 9, f: bold, color: muted })
-  text('RATE', col.rate, y, { size: 9, f: bold, color: muted })
-  text('AMOUNT', col.amt, y, { size: 9, f: bold, color: muted })
+  textRight('DURATION', col.durRight, y, { size: 9, f: bold, color: muted })
+  textRight('RATE', col.rateRight, y, { size: 9, f: bold, color: muted })
+  textRight('AMOUNT', col.amtRight, y, { size: 9, f: bold, color: muted })
   y -= 8
   hr(y)
   y -= 18
@@ -88,10 +116,10 @@ export async function buildInvoicePdf({ invoice, client, settings }) {
   for (const item of items) {
     if (y < 110) { page = pdfDoc.addPage([PAGE_W, PAGE_H]); y = PAGE_H - MARGIN }
     text(fmtDate(item.date), col.date, y, { size: 10 })
-    text(item.description || 'Session', col.desc, y, { size: 10 })
-    text(item.durationLabel || '—', col.dur, y, { size: 10 })
-    text(item.rateLabel || '—', col.rate, y, { size: 10 })
-    text(money(item.amount), col.amt, y, { size: 10 })
+    text(truncateToWidth(item.description || 'Session', descMaxWidth, font, 10), col.desc, y, { size: 10 })
+    textRight(item.durationLabel || '—', col.durRight, y, { size: 10 })
+    textRight(item.rateLabel || '—', col.rateRight, y, { size: 10 })
+    textRight(money(item.amount), col.amtRight, y, { size: 10 })
     y -= 18
   }
   if (items.length === 0) { text('No billable sessions in this period.', col.date, y, { size: 10, color: muted }); y -= 18 }
@@ -100,12 +128,13 @@ export async function buildInvoicePdf({ invoice, client, settings }) {
   hr(y)
   y -= 26
 
-  text('TOTAL', col.rate, y, { size: 12, f: bold })
-  text(money(invoice.total), col.amt, y, { size: 12, f: bold })
+  text('TOTAL', col.rateRight - bold.widthOfTextAtSize('TOTAL', 12), y, { size: 12, f: bold })
+  textRight(money(invoice.total), col.amtRight, y, { size: 12, f: bold })
   y -= 24
 
   const statusLabel = invoice.status === 'paid' ? `PAID${invoice.paidDate ? ' — ' + fmtDate(invoice.paidDate) : ''}` : 'UNPAID'
-  text(statusLabel, col.rate, y, { size: 10, f: bold, color: invoice.status === 'paid' ? rgb(0.13, 0.55, 0.3) : rgb(0.75, 0.35, 0.1) })
+  const statusColor = invoice.status === 'paid' ? rgb(0.13, 0.55, 0.3) : rgb(0.75, 0.35, 0.1)
+  textRight(statusLabel, col.amtRight, y, { size: 10, f: bold, color: statusColor })
 
   return pdfDoc.save()
 }
