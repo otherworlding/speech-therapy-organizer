@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('api', {
   pickFolder: () => ipcRenderer.invoke('folder:pick'),
   isDirectory: (p) => ipcRenderer.invoke('path:is-directory', p),
   exportReport: (filename, content) => ipcRenderer.invoke('report:export', { filename, content }),
+  exportInvoicePdf: (filename, bytes) => ipcRenderer.invoke('invoice:export', { filename, bytes }),
   copyToClipboard: (text) => ipcRenderer.invoke('clipboard:write', text),
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
   revealInFinder: (p) => ipcRenderer.invoke('shell:reveal', p),

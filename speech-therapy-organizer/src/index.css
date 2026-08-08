@@ -968,3 +968,20 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .history-card { background: var(--surface); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow); }
 .history-date { font-weight: 600; font-size: 14px; }
 .history-mats { font-size: 12px; color: var(--text-muted); flex: 1; }
+
+/* ── Billing ── */
+.billing-settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 16px; }
+.billing-settings-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.billing-settings-grid input, .billing-settings-grid select { font-weight: 400; color: var(--text); padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); }
+.invoice-preview { margin-top: 14px; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--bg); }
+.invoice-preview-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.invoice-preview-table th { text-align: left; font-size: 11px; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid var(--border); }
+.invoice-preview-table td { padding: 6px; border-bottom: 1px solid var(--border); }
+.invoice-preview-total { text-align: right; margin-top: 10px; font-size: 14px; }
+.invoice-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.invoice-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); flex-wrap: wrap; }
+.invoice-row-main { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.invoice-row-num { font-weight: 700; }
+.invoice-row-right { display: flex; align-items: center; gap: 8px; }
+.invoice-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: #fdecea; color: #b3441f; }
+.invoice-badge.paid { background: #e7f6ed; color: #1e824c; }

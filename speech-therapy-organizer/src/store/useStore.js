@@ -3,13 +3,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 const isElectron = typeof window !== 'undefined' && window.api
 const EMPTY = {
-  clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [],
-  tombstones: { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {} },
+  clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [], invoices: [],
+  tombstones: { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {} },
 }
-const COLLECTIONS = ['clients', 'materials', 'sessions', 'appointments', 'goals', 'folders']
+const COLLECTIONS = ['clients', 'materials', 'sessions', 'appointments', 'goals', 'folders', 'invoices']
 
 function now() { return new Date().toISOString() }
-function emptyTombstones() { return { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {} } }
+function emptyTombstones() { return { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {} } }
 
 function localLoad() {
   try { return { ...EMPTY, ...JSON.parse(localStorage.getItem('sto_data')) } }
@@ -120,6 +120,7 @@ export function useStore() {
       sessions: data.sessions.filter(s => s.clientId !== id),
       goals: data.goals.filter(g => g.clientId !== id),
       appointments: (data.appointments || []).filter(a => a.clientId !== id),
+      invoices: (data.invoices || []).filter(i => i.clientId !== id),
     }
     // The client's Main Collection folder is theirs alone — clean it up (and any
     // subfolders/materials inside it) the same way deleteFolder cascades, so it
@@ -398,6 +399,34 @@ export function useStore() {
     })
   }
 
+  // ── Invoices ──────────────────────────────────────────────────────────
+  // A generated bill for a client covering a date range of sessions. Line items are
+  // a snapshot at generation time (title/date/duration/rate/amount) — later edits to
+  // the underlying session don't retroactively change an already-issued invoice.
+  const addInvoice = (invoice) => {
+    const nextNumber = (data.settings?.nextInvoiceNumber) || 1001
+    const inv = {
+      id: uuidv4(), status: 'unpaid', paidDate: null, lineItems: [], total: 0,
+      createdAt: now(), updatedAt: now(), invoiceNumber: nextNumber,
+      ...invoice,
+    }
+    persist({
+      ...data,
+      invoices: [...(data.invoices || []), inv],
+      settings: { ...(data.settings || {}), nextInvoiceNumber: nextNumber + 1, updatedAt: now() },
+    })
+    return inv
+  }
+  const updateInvoice = (id, updates) => {
+    persist({ ...data, invoices: (data.invoices || []).map(i => i.id === id ? { ...i, ...updates, updatedAt: now() } : i) })
+  }
+  const deleteInvoice = (id) => {
+    persist(tombstone({ ...data, invoices: (data.invoices || []).filter(i => i.id !== id) }, 'invoices', id))
+  }
+  const markInvoicePaid = (id, paid = true) => {
+    updateInvoice(id, { status: paid ? 'paid' : 'unpaid', paidDate: paid ? now() : null })
+  }
+
   return {
     clients: data.clients,
     materials: data.materials,
@@ -406,6 +435,7 @@ export function useStore() {
     appointments: data.appointments || [],
     settings: data.settings || {},
     folders: data.folders || [],
+    invoices: data.invoices || [],
     loaded,
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
     assignMaterials, transferClientMaterials, assignHomework, unassignHomework,
@@ -415,6 +445,7 @@ export function useStore() {
     addAppointment, updateAppointment, deleteAppointment,
     addAppointmentAttachment, removeAppointmentAttachment,
     addFolder, updateFolder, deleteFolder, dissolveFolder,
+    addInvoice, updateInvoice, deleteInvoice, markInvoicePaid,
     updateSettings,
     previewMerge, applyMerged,
     rawData: data,

@@ -530,6 +530,20 @@ ipcMain.handle('report:export', async (_, { filename, content }) => {
   return false
 })
 
+// Save a generated invoice PDF (renderer builds the bytes with pdf-lib, main just
+// runs the save dialog + write — same convention as report:export, binary instead of text)
+ipcMain.handle('invoice:export', async (_, { filename, bytes }) => {
+  const result = await dialog.showSaveDialog({
+    defaultPath: path.join(os.homedir(), 'Desktop', filename),
+    filters: [{ name: 'PDF', extensions: ['pdf'] }],
+  })
+  if (!result.canceled && result.filePath) {
+    fs.writeFileSync(result.filePath, Buffer.from(bytes))
+    return { success: true, path: result.filePath }
+  }
+  return { success: false, canceled: true }
+})
+
 // Open a URL in the default handler (browser, Mail via mailto:)
 ipcMain.handle('shell:open-external', (_, url) => {
   if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url)

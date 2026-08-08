@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import MaterialCard from '../components/MaterialCard'
 import GoalsPage from './GoalsPage'
+import BillingTab from '../components/BillingTab'
 
 const CATEGORIES = ['Language', 'Comprehension', 'Pragmatic', 'Age']
 
@@ -89,6 +90,9 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
         <button className={`detail-tab ${mainTab==='history'?'active':''}`} onClick={()=>setMainTab('history')}>
           Recent Sessions
         </button>
+        <button className={`detail-tab ${mainTab==='billing'?'active':''}`} onClick={()=>setMainTab('billing')}>
+          🧾 Billing
+        </button>
       </div>
 
       {/* Materials tab */}
@@ -133,6 +137,9 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
           ))}
         </div>
       )}
+
+      {/* Billing tab */}
+      {mainTab === 'billing' && <BillingTab store={store} client={client} />}
 
       {/* Transfer from another client */}
       {showTransfer && (
