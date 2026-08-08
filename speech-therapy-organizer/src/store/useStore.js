@@ -112,13 +112,37 @@ export function useStore() {
     persist({ ...data, clients: data.clients.map(c => c.id === id ? { ...c, ...updates, updatedAt: now() } : c) })
   }
   const deleteClient = (id) => {
-    persist(tombstone({
+    const folders = data.folders || []
+    const mainFolder = folders.find(f => f.mainCollection && f.clientId === id)
+    let next = {
       ...data,
       clients: data.clients.filter(c => c.id !== id),
       sessions: data.sessions.filter(s => s.clientId !== id),
       goals: data.goals.filter(g => g.clientId !== id),
       appointments: (data.appointments || []).filter(a => a.clientId !== id),
-    }, 'clients', id))
+    }
+    // The client's Main Collection folder is theirs alone — clean it up (and any
+    // subfolders/materials inside it) the same way deleteFolder cascades, so it
+    // doesn't linger as an orphaned entry in the Digital library exclusion list.
+    if (mainFolder) {
+      const doomed = new Set([mainFolder.id])
+      let grew = true
+      while (grew) {
+        grew = false
+        for (const f of folders) {
+          if (f.parentId && doomed.has(f.parentId) && !doomed.has(f.id)) { doomed.add(f.id); grew = true }
+        }
+      }
+      const deadMaterialIds = new Set(data.materials.filter(m => doomed.has(m.folderId)).map(m => m.id))
+      next = {
+        ...next,
+        folders: folders.filter(f => !doomed.has(f.id)),
+        materials: data.materials.filter(m => !deadMaterialIds.has(m.id)),
+      }
+      for (const fid of doomed) next = tombstone(next, 'folders', fid)
+      for (const mid of deadMaterialIds) next = tombstone(next, 'materials', mid)
+    }
+    persist(tombstone(next, 'clients', id))
   }
   const assignMaterial = (clientId, materialId) => {
     persist({
@@ -296,8 +320,10 @@ export function useStore() {
   }
 
   // ── Folders (materials organization) ──────────────────────────────────
-  const addFolder = (name, color, parentId = null) => {
-    const f = { id: uuidv4(), name, color, parentId, createdAt: now(), updatedAt: now() }
+  // extra: optional fields merged onto the record, e.g. { clientId, mainCollection: true }
+  // for the auto-created per-client "Main Collection" folder.
+  const addFolder = (name, color, parentId = null, extra = {}) => {
+    const f = { id: uuidv4(), name, color, parentId, createdAt: now(), updatedAt: now(), ...extra }
     persist({ ...data, folders: [...(data.folders || []), f] })
     return f
   }

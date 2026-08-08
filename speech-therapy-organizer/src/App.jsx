@@ -41,7 +41,7 @@ export default function App() {
     <div className="app-shell">
       <div className="app-titlebar" />
       <div className="app-body">
-      <Sidebar view={view} setView={setView} />
+      <Sidebar view={view} setView={setView} settings={store.settings} />
       <main className="main-content">
         {view === 'clients' && (
           <ClientsPage store={store} onOpenClient={openClient} onStartSession={requestSession} />

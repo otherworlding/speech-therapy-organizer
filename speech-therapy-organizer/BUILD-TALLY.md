@@ -5,7 +5,7 @@ track it, offset it, and learn to code more efficiently. Measured metrics are
 reliable; the energy (kWh) figures are **honest estimates with wide error bars**,
 not precise measurements.
 
-_Last updated: 2026-07-24_
+_Last updated: 2026-07-26_
 
 ## Measured facts
 
@@ -18,6 +18,33 @@ _Last updated: 2026-07-24_
 | Renderer-only builds | ~82 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 7 (2026-07-26): Per-client Main Collection folder + custom branding
+Two of three requested features (a third, per-client invoicing, was scoped and
+deliberately deferred to its own round — spec saved to memory so it isn't
+re-derived from scratch later). Both reuse existing patterns rather than adding
+new architecture: (1) **Main Collection** — a real top-level folder auto-created
+per client (same Finder component, same drag/drop, scoped by a new optional
+`clientId` field on folder records) for dropping in a month-or-more of material
+that weekly sessions/homework draw from by dragging, same mechanism already used
+everywhere else. Excluded from the general Digital library tab by extending
+`excludeFolderId` to accept an array (previously only excluded the single
+In-Person folder). Cascade-deletes cleanly with the client, same BFS pattern as
+folder deletion. (2) **Custom branding** — a Settings card for a practice name
+and logo image, reusing the existing file-picker/copy-to-userData-folder IPC
+pattern (new `branding:pick-logo`/`branding:clear-logo` handlers, dedicated
+`branding/` folder so re-uploading cleanly replaces rather than accumulates
+files), rendered in the sidebar in place of the default emoji/name. Caught one
+real UX issue during live verification: the embedded Finder toolbar's fixed
+220px search box didn't fit the narrow ~230px client-accordion column and got
+clipped — fixed with a scoped narrower search width and `flex-wrap` on the
+toolbar's right-hand button group.
+
+**Footprint note:** dev-mode fix-and-verify only, no DMG build this round —
+both features tested live in the already-running dev Electron app (folder
+creation/scoping, file import into Main Collection, logo upload/preview/removal,
+name change propagating to the sidebar, console checked clean). Will fold into
+the next build when one is due.
 
 ### Round 6 (2026-07-24): Preview scroll/zoom fix + Finder back vs. delete clarity
 User testing surfaced two real UX bugs: zoomed image/PDF previews couldn't be

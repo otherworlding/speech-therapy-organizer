@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('api', {
   pickFiles: () => ipcRenderer.invoke('file:pick'),
   openFile: (filePath) => ipcRenderer.invoke('file:open', filePath),
   copyToLibrary: (srcPath) => ipcRenderer.invoke('file:copy-to-library', srcPath),
+  pickLogo: () => ipcRenderer.invoke('branding:pick-logo'),
+  clearLogo: () => ipcRenderer.invoke('branding:clear-logo'),
   readFileBinary: (filePath) => ipcRenderer.invoke('file:read-binary', filePath),
   fileExists: (filePath) => ipcRenderer.invoke('file:exists', filePath),
   importFolderTree: (folderPath) => ipcRenderer.invoke('folder:import-tree', folderPath),

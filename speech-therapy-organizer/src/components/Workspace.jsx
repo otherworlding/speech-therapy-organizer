@@ -338,7 +338,7 @@ export default function Workspace({ store }) {
   const [dragging, setDragging] = useState(false)
   const [preview, setPreview] = useState(null)
   const [fs, setFs] = useState(false)
-  const [open, setOpen] = useState({ session: true, sessionThis: true, sessionPrev: false, homework: true, hwThis: true, hwPast: false, inperson: true, ipUpcoming: true, ipReview: true, ipArchive: false })
+  const [open, setOpen] = useState({ session: true, sessionThis: true, sessionPrev: false, homework: true, hwThis: true, hwPast: false, inperson: true, ipUpcoming: true, ipReview: true, ipArchive: false, main: false })
   const toggle = k => setOpen(o => ({ ...o, [k]: !o[k] }))
   const [noteDrafts, setNoteDrafts] = useState({})   // clientId -> homework note draft
   const [clientView, setClientView] = useState('icon') // icon | list — applies to all client material grids
@@ -352,6 +352,18 @@ export default function Workspace({ store }) {
     if (!store.loaded || inPersonFolderId) return
     store.addFolder(IN_PERSON_FOLDER_NAME, '#f7a84f', null)
   }, [store.loaded, inPersonFolderId])
+
+  // Each client gets one auto-created "Main Collection" folder — a real top-level folder
+  // (scoped by clientId, same Finder as everywhere else) meant as a month's worth of dropped-in
+  // material that sessions/homework draw from, rather than a per-week working set.
+  useEffect(() => {
+    if (!store.loaded) return
+    const haveOne = new Set((store.folders || []).filter(f => f.mainCollection && f.clientId).map(f => f.clientId))
+    const missing = store.clients.filter(c => !haveOne.has(c.id))
+    missing.forEach(c => store.addFolder(`${c.name} — Main Collection`, '#8fd14f', null, { clientId: c.id, mainCollection: true }))
+  }, [store.loaded, store.clients, store.folders])
+  const mainCollectionFolderId = (client) => (store.folders || []).find(f => f.mainCollection && f.clientId === client.id)?.id || null
+  const mainCollectionFolderIds = (store.folders || []).filter(f => f.mainCollection).map(f => f.id)
 
   const toggleClientOpen = (id) => setOpenClientIds(prev => {
     const next = new Set(prev)
@@ -416,6 +428,18 @@ export default function Workspace({ store }) {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* MAIN COLLECTION — a month-or-more pool of material dropped in once; This Week
+                and Homework above/below draw from it by dragging, same as from the Digital library. */}
+            <FolderHead open={open.main} onToggle={() => toggle('main')} icon="🗂" label="Main Collection"
+              count={countInFolderTree(store.materials, store.folders || [], mainCollectionFolderId(client))} />
+            {open.main && (
+              <div className="ws-folder-body ws-main-collection">
+                {mainCollectionFolderId(client)
+                  ? <FinderView store={store} scopeFolderId={mainCollectionFolderId(client)} rootLabel="🗂 Main Collection" />
+                  : <div className="ws-none">Setting up…</div>}
               </div>
             )}
 
@@ -559,7 +583,7 @@ export default function Workspace({ store }) {
           </button>
         </div>
         {libTab === 'digital'
-          ? <FinderView store={store} excludeFolderId={inPersonFolderId} />
+          ? <FinderView store={store} excludeFolderId={[inPersonFolderId, ...mainCollectionFolderIds].filter(Boolean)} />
           : inPersonFolderId && <FinderView store={store} scopeFolderId={inPersonFolderId} rootLabel="🤝 In-Person" />}
       </div>
 

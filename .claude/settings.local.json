@@ -129,7 +129,8 @@
       "Bash(open \"release/mac/Speech Therapy Organizer.app\")",
       "Bash(gh api *)",
       "Bash(xargs -I{} echo {})",
-      "Bash(pkill -f \"concurrently\")"
+      "Bash(pkill -f \"concurrently\")",
+      "Bash(awk '/^export default function FinderView/,0' \"/Users/otherworlding/Asset calulation app/speech-therapy-organizer/src/components/FinderView.jsx\")"
     ]
   }
 }

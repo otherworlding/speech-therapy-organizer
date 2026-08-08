@@ -8,16 +8,20 @@ const NAV = [
   { id: 'settings', icon: '⚙️', label: 'Settings' },
 ]
 
-export default function Sidebar({ view, setView }) {
+export default function Sidebar({ view, setView, settings = {} }) {
   const isActive = (id) => id === 'clients'
     ? (view === 'clients' || view === 'client-detail')
     : view === id
+  const logoPath = settings?.logoPath || null
+  const appName = settings?.appName?.trim() || 'SpeechOrg'
 
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <span className="logo-icon">🗣</span>
-        <span className="logo-text">SpeechOrg</span>
+        {logoPath
+          ? <span className="logo-icon logo-icon-img"><img src={`file://${logoPath}`} alt="" /></span>
+          : <span className="logo-icon">🗣</span>}
+        <span className="logo-text">{appName}</span>
       </div>
       <nav className="sidebar-nav">
         {NAV.map(({ id, icon, label }) => (

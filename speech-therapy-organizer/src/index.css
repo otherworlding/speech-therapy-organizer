@@ -37,6 +37,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .sidebar { width: 220px; flex-shrink: 0; background: var(--sidebar-bg); display: flex; flex-direction: column; padding: 16px 0; }
 .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 20px 20px 24px; color: white; font-weight: 700; font-size: 15px; }
 .logo-icon { font-size: 22px; }
+.logo-icon-img { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.logo-icon-img img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: none; background: transparent; color: var(--sidebar-text); font-size: 14px; cursor: pointer; text-align: left; transition: background 0.15s, color 0.15s; }
 .nav-item:hover { background: rgba(255,255,255,0.07); color: white; }
@@ -282,6 +284,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 /* ── Backups ── */
 .backup-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.branding-row { display: flex; gap: 18px; align-items: flex-start; }
+.branding-logo-preview { width: 64px; height: 64px; flex-shrink: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.branding-logo-preview img { width: 100%; height: 100%; object-fit: contain; }
+.branding-logo-placeholder { font-size: 30px; }
+.branding-controls { flex: 1; }
 .backup-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
 .backup-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: 7px; font-size: 13px; }
 .backup-row:hover { background: var(--bg); }
@@ -387,6 +394,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .ws-folder-label { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-folder-body { margin-left: 6px; padding-left: 6px; border-left: 1px solid var(--border); }
 .ws-archive { margin-left: 12px; padding: 4px 0 8px; }
+.ws-main-collection { max-height: 420px; overflow-y: auto; padding: 6px 4px; background: var(--bg); border-radius: 8px; }
 .ws-chip-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 
 /* Homework share menu */
@@ -470,8 +478,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .fx-crumb.drop-target { background: #eef4ff; box-shadow: 0 0 0 2px var(--primary) inset; }
 .fx-crumb-sep { color: var(--text-muted); }
 .fx-crumb-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-.fx-toolbar-right { display: flex; align-items: center; gap: 8px; }
+.fx-toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .fx-search { padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; width: 220px; }
+/* Embedded inline in a client's narrow accordion column (Main Collection) — same
+   toolbar, just needs to fit ~230px instead of the full library pane's width. */
+.ws-main-collection .fx-search { width: 100%; max-width: 150px; }
+.ws-main-collection .fx-toolbar { gap: 6px; }
 .fx-viewseg { display: inline-flex; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
 .fx-viewseg button { border: none; background: none; padding: 5px 12px; border-radius: 6px; font-size: 15px; color: var(--text-muted); cursor: pointer; }
 .fx-viewseg button.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }

@@ -173,6 +173,51 @@ function SyncCard({ store }) {
   )
 }
 
+function BrandingCard({ store }) {
+  const logoPath = store.settings?.logoPath || null
+  const [name, setName] = useState(store.settings?.appName || '')
+  const [busy, setBusy] = useState(false)
+
+  const pickLogo = async () => {
+    setBusy(true)
+    const destPath = await window.api.pickLogo()
+    setBusy(false)
+    if (destPath) store.updateSettings({ logoPath: destPath })
+  }
+  const clearLogo = async () => {
+    setBusy(true)
+    await window.api.clearLogo()
+    setBusy(false)
+    store.updateSettings({ logoPath: null })
+  }
+  const saveName = () => { if (name.trim() !== (store.settings?.appName || '')) store.updateSettings({ appName: name.trim() }) }
+
+  return (
+    <div className="settings-card">
+      <div className="settings-card-header"><h2>🎨 Branding</h2></div>
+      <p className="settings-note">
+        Personalize the app with your own practice name and logo — shown in the sidebar in place
+        of the default "SpeechOrg" icon and name.
+      </p>
+      <div className="branding-row">
+        <div className="branding-logo-preview">
+          {logoPath ? <img src={`file://${logoPath}`} alt="Logo" /> : <span className="branding-logo-placeholder">🗣</span>}
+        </div>
+        <div className="branding-controls">
+          <label style={{ display: 'block', marginBottom: 10 }}>Practice / therapist name
+            <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName}
+              placeholder="SpeechOrg" style={{ maxWidth: 320 }} />
+          </label>
+          <div className="backup-actions">
+            <button className="btn-primary" onClick={pickLogo} disabled={busy}>🖼 Choose Logo Image…</button>
+            {logoPath && <button className="btn-secondary" onClick={clearLogo} disabled={busy}>Remove Logo</button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SettingsPage({ store }) {
   const zoom = store.settings?.zoom || {}
   const connected = !!zoom.connected
@@ -214,6 +259,9 @@ export default function SettingsPage({ store }) {
   return (
     <div className="page">
       <div className="page-header"><h1>Settings</h1></div>
+
+      {/* ── Branding ── */}
+      <BrandingCard store={store} />
 
       {/* ── Zoom integration ── */}
       <div className="settings-card">

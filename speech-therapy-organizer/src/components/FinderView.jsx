@@ -145,6 +145,9 @@ function thumbFor(m) {
 }
 
 export default function FinderView({ store, scopeFolderId = null, excludeFolderId = null, rootLabel = '🏠 Library' }) {
+  // excludeFolderId may be a single id or an array of ids (e.g. In-Person + every
+  // client's Main Collection folder, all kept out of the general Digital library).
+  const excludeFolderIds = excludeFolderId == null ? null : (Array.isArray(excludeFolderId) ? excludeFolderId : [excludeFolderId])
   const [view, setView] = useState('icon')          // 'icon' | 'list'
   const [sortKey, setSortKey] = useState('name')     // name | added | kind | opened
   const [sortDir, setSortDir] = useState('asc')      // asc | desc
@@ -209,12 +212,12 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
   }
   const inScope = (m) => {
     if (scopeFolderId) return chainToRoot(m.folderId || null).includes(scopeFolderId)
-    if (excludeFolderId) return !chainToRoot(m.folderId || null).includes(excludeFolderId)
+    if (excludeFolderIds) return !chainToRoot(m.folderId || null).some(id => excludeFolderIds.includes(id))
     return true
   }
   const scopedMaterials = store.materials.filter(inScope)
   const childFolders = pid => folders
-    .filter(f => (f.parentId || null) === pid && !(pid === null && excludeFolderId && f.id === excludeFolderId))
+    .filter(f => (f.parentId || null) === pid && !(pid === null && excludeFolderIds && excludeFolderIds.includes(f.id)))
     .sort((a, b) => a.name.localeCompare(b.name))
   const materialsIn = fid => sortMaterials(scopedMaterials.filter(m => (m.folderId || null) === fid))
 
