@@ -19309,3 +19309,9 @@ To https://github.com/otherworlding/speech-therapy-organizer.git
 To https://github.com/otherworlding/speech-therapy-organizer.git
    6ba2934..de04052  main -> main
 2026-08-08 18:10 — pushed changes
+[main b29f7a4] Auto-save: 2026-08-08 18:40
+ 9 files changed, 221 insertions(+), 14 deletions(-)
+ create mode 100644 speech-therapy-organizer/src/pages/InvoiceTrackerPage.jsx
+To https://github.com/otherworlding/speech-therapy-organizer.git
+   de04052..b29f7a4  main -> main
+2026-08-08 18:40 — pushed changes
