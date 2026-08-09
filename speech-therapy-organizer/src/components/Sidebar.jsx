@@ -9,12 +9,12 @@ const NAV = [
   { id: 'settings', icon: '⚙️', label: 'Settings' },
 ]
 
-export default function Sidebar({ view, setView, settings = {} }) {
+export default function Sidebar({ view, setView, provider = null }) {
   const isActive = (id) => id === 'clients'
     ? (view === 'clients' || view === 'client-detail')
     : view === id
-  const logoPath = settings?.logoPath || null
-  const appName = settings?.appName?.trim() || 'SpeechOrg'
+  const logoPath = provider?.logoPath || null
+  const appName = provider?.name?.trim() || 'SpeechOrg'
 
   return (
     <aside className="sidebar">

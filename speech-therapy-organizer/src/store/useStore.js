@@ -3,13 +3,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 const isElectron = typeof window !== 'undefined' && window.api
 const EMPTY = {
-  clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [], invoices: [],
-  tombstones: { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {} },
+  clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [], invoices: [], providers: [],
+  tombstones: { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {}, providers: {} },
 }
-const COLLECTIONS = ['clients', 'materials', 'sessions', 'appointments', 'goals', 'folders', 'invoices']
+const COLLECTIONS = ['clients', 'materials', 'sessions', 'appointments', 'goals', 'folders', 'invoices', 'providers']
 
 function now() { return new Date().toISOString() }
-function emptyTombstones() { return { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {} } }
+function emptyTombstones() { return { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {}, providers: {} } }
 
 function localLoad() {
   try { return { ...EMPTY, ...JSON.parse(localStorage.getItem('sto_data')) } }
@@ -427,6 +427,46 @@ export function useStore() {
     updateInvoice(id, { status: paid ? 'paid' : 'unpaid', paidDate: paid ? now() : null })
   }
 
+  // ── Providers ─────────────────────────────────────────────────────────
+  // A "provider" is a billing identity the therapist issues invoices as — their own
+  // practice, or an agency they subcontract for. Each client is assigned to one
+  // (client.providerId); a client with none falls back to whichever provider is
+  // marked default. Replaces the old global-branding + per-client-override design.
+  const addProvider = (fields) => {
+    const makeDefault = (data.providers || []).length === 0
+    const p = {
+      id: uuidv4(), name: 'New Provider', logoPath: null,
+      billFrom: { address: '', contact: '', email: '', phone: '' },
+      currency: 'USD', consolidateInvoices: false, isDefault: makeDefault,
+      createdAt: now(), updatedAt: now(), ...fields,
+    }
+    persist({ ...data, providers: [...(data.providers || []), p] })
+    return p
+  }
+  const updateProvider = (id, updates) => {
+    persist({ ...data, providers: (data.providers || []).map(p => p.id === id ? { ...p, ...updates, updatedAt: now() } : p) })
+  }
+  // Exactly one provider may be default at a time — setting one unsets the rest.
+  const setDefaultProvider = (id) => {
+    persist({ ...data, providers: (data.providers || []).map(p => ({ ...p, isDefault: p.id === id, updatedAt: p.id === id ? now() : p.updatedAt })) })
+  }
+  const deleteProvider = (id) => {
+    const providers = data.providers || []
+    if (providers.length <= 1) return   // always keep at least one provider to fall back to
+    const wasDefault = providers.find(p => p.id === id)?.isDefault
+    let remaining = providers.filter(p => p.id !== id)
+    if (wasDefault && remaining.length && !remaining.some(p => p.isDefault)) {
+      remaining = remaining.map((p, i) => i === 0 ? { ...p, isDefault: true, updatedAt: now() } : p)
+    }
+    persist(tombstone({
+      ...data,
+      providers: remaining,
+      // Clients pointed at the deleted provider fall back to the (new) default automatically —
+      // just clear the stale reference rather than leaving a dangling id.
+      clients: data.clients.map(c => c.providerId === id ? { ...c, providerId: null, updatedAt: now() } : c),
+    }, 'providers', id))
+  }
+
   return {
     clients: data.clients,
     materials: data.materials,
@@ -436,6 +476,7 @@ export function useStore() {
     settings: data.settings || {},
     folders: data.folders || [],
     invoices: data.invoices || [],
+    providers: data.providers || [],
     loaded,
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
     assignMaterials, transferClientMaterials, assignHomework, unassignHomework,
@@ -446,6 +487,7 @@ export function useStore() {
     addAppointmentAttachment, removeAppointmentAttachment,
     addFolder, updateFolder, deleteFolder, dissolveFolder,
     addInvoice, updateInvoice, deleteInvoice, markInvoicePaid,
+    addProvider, updateProvider, setDefaultProvider, deleteProvider,
     updateSettings,
     previewMerge, applyMerged,
     rawData: data,

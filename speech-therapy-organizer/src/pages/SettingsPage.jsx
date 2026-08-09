@@ -173,114 +173,119 @@ function SyncCard({ store }) {
   )
 }
 
-function BrandingCard({ store }) {
-  const logoPath = store.settings?.logoPath || null
-  const [name, setName] = useState(store.settings?.appName || '')
-  const [busy, setBusy] = useState(false)
+const CURRENCIES = [
+  ['USD', '$ USD'], ['CAD', '$ CAD'], ['EUR', '€ EUR'], ['GBP', '£ GBP'],
+  ['AUD', '$ AUD'], ['PHP', '₱ PHP'], ['INR', '₹ INR'], ['MXN', '$ MXN'],
+  ['JPY', '¥ JPY'], ['NZD', '$ NZD'], ['ZAR', 'R ZAR'], ['SGD', '$ SGD'],
+]
 
+// One row of the Providers card — a billing identity (name, logo, "bill from" contact
+// info, currency, default flag, and whether it consolidates all its clients onto one
+// periodic invoice). Expands inline to edit; a provider can't be deleted if it's the
+// only one, since every client needs somewhere to fall back to.
+function ProviderRow({ provider, isOnly, store }) {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [name, setName] = useState(provider.name || '')
+  const bf = provider.billFrom || {}
+
+  const patch = (updates) => store.updateProvider(provider.id, updates)
+  const patchBillFrom = (updates) => patch({ billFrom: { ...bf, ...updates } })
+  const saveName = () => { if (name.trim() && name.trim() !== provider.name) patch({ name: name.trim() }) }
   const pickLogo = async () => {
     setBusy(true)
-    const destPath = await window.api.pickLogo()
-    setBusy(false)
-    if (destPath) store.updateSettings({ logoPath: destPath })
-  }
-  const clearLogo = async () => {
-    setBusy(true)
-    await window.api.clearLogo()
-    setBusy(false)
-    store.updateSettings({ logoPath: null })
-  }
-  const saveName = () => { if (name.trim() !== (store.settings?.appName || '')) store.updateSettings({ appName: name.trim() }) }
-
-  return (
-    <div className="settings-card">
-      <div className="settings-card-header"><h2>🎨 Branding</h2></div>
-      <p className="settings-note">
-        Personalize the app with your own practice name and logo — shown in the sidebar in place
-        of the default "SpeechOrg" icon and name.
-      </p>
-      <div className="branding-row">
-        <div className="branding-logo-preview">
-          {logoPath ? <img src={`file://${logoPath}`} alt="Logo" /> : <span className="branding-logo-placeholder">🗣</span>}
-        </div>
-        <div className="branding-controls">
-          <label style={{ display: 'block', marginBottom: 10 }}>Practice / therapist name
-            <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName}
-              placeholder="SpeechOrg" style={{ maxWidth: 320 }} />
-          </label>
-          <div className="backup-actions">
-            <button className="btn-primary" onClick={pickLogo} disabled={busy}>🖼 Choose Logo Image…</button>
-            {logoPath && <button className="btn-secondary" onClick={clearLogo} disabled={busy}>Remove Logo</button>}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Lets a client's invoices use a different business name/logo than the default
-// above — for a therapist who works for multiple agencies, is self-employed on the
-// side, or otherwise bills different clients under different identities. Off by
-// default (uses the shared branding above) unless explicitly enabled per client.
-function PerClientBrandingCard({ store }) {
-  const [clientId, setClientId] = useState(store.clients[0]?.id || '')
-  const client = store.clients.find(c => c.id === clientId)
-  const cb = client?.customBranding || {}
-  const [name, setName] = useState(cb.businessName || '')
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => { setName(client?.customBranding?.businessName || '') }, [clientId])
-
-  if (store.clients.length === 0) return null
-
-  const patch = (updates) => store.updateClient(clientId, { customBranding: { ...cb, ...updates } })
-  const saveName = () => { if (name.trim() !== (cb.businessName || '')) patch({ businessName: name.trim() }) }
-  const pickLogo = async () => {
-    setBusy(true)
-    const destPath = await window.api.pickLogo(clientId)
+    const destPath = await window.api.pickLogo(provider.id)
     setBusy(false)
     if (destPath) patch({ logoPath: destPath })
   }
   const clearLogo = async () => {
     setBusy(true)
-    await window.api.clearLogo(clientId)
+    await window.api.clearLogo(provider.id)
     setBusy(false)
     patch({ logoPath: null })
   }
 
   return (
-    <div className="settings-card">
-      <div className="settings-card-header"><h2>🏢 Per-Client Branding</h2></div>
-      <p className="settings-note">
-        Override the practice name/logo on a specific client's invoices — useful for agency work,
-        self-employed side clients, or any client that needs a different letterhead than the default above.
-      </p>
-      <label style={{ display: 'block', margin: '10px 0' }}>Client
-        <select value={clientId} onChange={e => setClientId(e.target.value)} style={{ maxWidth: 320 }}>
-          {store.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-      </label>
-      <label className="checkbox-row">
-        <input type="checkbox" checked={!!cb.enabled} onChange={e => patch({ enabled: e.target.checked })} />
-        Use custom branding for {client?.name}'s invoices (unchecked = use the default branding above)
-      </label>
-      {cb.enabled && (
-        <div className="branding-row" style={{ marginTop: 12 }}>
-          <div className="branding-logo-preview">
-            {cb.logoPath ? <img src={`file://${cb.logoPath}`} alt="Logo" /> : <span className="branding-logo-placeholder">🏢</span>}
-          </div>
-          <div className="branding-controls">
-            <label style={{ display: 'block', marginBottom: 10 }}>Business name
-              <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName}
-                placeholder="Agency or DBA name" style={{ maxWidth: 320 }} />
-            </label>
-            <div className="backup-actions">
-              <button className="btn-primary" onClick={pickLogo} disabled={busy}>🖼 Choose Logo Image…</button>
-              {cb.logoPath && <button className="btn-secondary" onClick={clearLogo} disabled={busy}>Remove Logo</button>}
+    <div className="provider-row">
+      <div className="provider-row-head" onClick={() => setOpen(o => !o)}>
+        <span className="ws-caret">{open ? '▾' : '▸'}</span>
+        <div className="branding-logo-preview provider-thumb">
+          {provider.logoPath ? <img src={`file://${provider.logoPath}`} alt="" /> : <span className="branding-logo-placeholder">🏢</span>}
+        </div>
+        <span className="provider-row-name">{provider.name}</span>
+        {provider.isDefault && <span className="invoice-badge paid">Default</span>}
+        {provider.consolidateInvoices && <span className="invoice-badge">Consolidated</span>}
+        {!provider.isDefault && (
+          <button className="btn-secondary" onClick={e => { e.stopPropagation(); store.setDefaultProvider(provider.id) }}>Set Default</button>
+        )}
+        {!isOnly && (
+          <button className="btn-icon btn-delete" title="Delete provider"
+            onClick={e => { e.stopPropagation(); if (window.confirm(`Delete provider "${provider.name}"? Clients assigned to it will fall back to the default provider.`)) store.deleteProvider(provider.id) }}>🗑</button>
+        )}
+      </div>
+      {open && (
+        <div className="provider-row-body">
+          <div className="branding-row">
+            <div className="branding-logo-preview">
+              {provider.logoPath ? <img src={`file://${provider.logoPath}`} alt="Logo" /> : <span className="branding-logo-placeholder">🏢</span>}
+            </div>
+            <div className="branding-controls">
+              <label style={{ display: 'block', marginBottom: 10 }}>Business / practice name
+                <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName} style={{ maxWidth: 320 }} />
+              </label>
+              <div className="backup-actions">
+                <button className="btn-primary" onClick={pickLogo} disabled={busy}>🖼 Choose Logo Image…</button>
+                {provider.logoPath && <button className="btn-secondary" onClick={clearLogo} disabled={busy}>Remove Logo</button>}
+              </div>
             </div>
           </div>
+
+          <div className="billing-settings-grid" style={{ marginTop: 14 }}>
+            <label>Currency
+              <select value={provider.currency || 'USD'} onChange={e => patch({ currency: e.target.value })}>
+                {CURRENCIES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+              </select>
+            </label>
+            <label>Bill-from email
+              <input type="email" value={bf.email || ''} onChange={e => patchBillFrom({ email: e.target.value })} placeholder="billing@example.com" />
+            </label>
+            <label>Bill-from phone
+              <input type="tel" value={bf.phone || ''} onChange={e => patchBillFrom({ phone: e.target.value })} placeholder="+1 415 555 1234" />
+            </label>
+            <label>Bill-from address
+              <textarea rows={2} value={bf.address || ''} onChange={e => patchBillFrom({ address: e.target.value })} placeholder="123 Main St, Springfield, IL 62704" />
+            </label>
+            <label>Bill-from contact name
+              <input value={bf.contact || ''} onChange={e => patchBillFrom({ contact: e.target.value })} placeholder="Provider or billing contact" />
+            </label>
+          </div>
+
+          <label className="checkbox-row" style={{ marginTop: 12 }}>
+            <input type="checkbox" checked={!!provider.consolidateInvoices} onChange={e => patch({ consolidateInvoices: e.target.checked })} />
+            Combine all clients billed to this provider onto one periodic invoice (for agency subcontracting — generate from the Invoices page)
+          </label>
         </div>
       )}
+    </div>
+  )
+}
+
+function ProvidersCard({ store }) {
+  const providers = store.providers || []
+  return (
+    <div className="settings-card">
+      <div className="settings-card-header">
+        <h2>🏢 Providers</h2>
+        <button className="btn-primary" onClick={() => store.addProvider({ name: 'New Provider' })}>+ Add Provider</button>
+      </div>
+      <p className="settings-note">
+        A provider is a billing identity — your own practice, or an agency you subcontract for.
+        Each client is assigned to one (on their Billing tab); it defaults automatically when there's
+        only one. The default provider's name/logo also appears in the sidebar.
+      </p>
+      <div className="provider-list">
+        {providers.map(p => <ProviderRow key={p.id} provider={p} isOnly={providers.length === 1} store={store} />)}
+      </div>
     </div>
   )
 }
@@ -327,9 +332,8 @@ export default function SettingsPage({ store }) {
     <div className="page">
       <div className="page-header"><h1>Settings</h1></div>
 
-      {/* ── Branding ── */}
-      <BrandingCard store={store} />
-      <PerClientBrandingCard store={store} />
+      {/* ── Providers (billing identities) ── */}
+      <ProvidersCard store={store} />
 
       {/* ── Zoom integration ── */}
       <div className="settings-card">

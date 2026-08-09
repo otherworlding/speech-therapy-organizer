@@ -1,54 +1,20 @@
 import React, { useState } from 'react'
 import { buildInvoicePdf } from '../utils/invoicePdf'
+import { fmtDate, money, resolveProvider, rateTypeOf, hasRateSet, FREQUENCY_DEFAULTS, lineItemsFor, computeTotal, todayIso } from '../utils/billing'
 
-function todayIso() { return new Date().toISOString().slice(0, 10) }
-function daysAgoIso(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10) }
-function monthStartIso() { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10) }
-// Bare "YYYY-MM-DD" strings (from <input type="date">) parse as UTC midnight by
-// default, which shifts a day backward once displayed in a timezone behind UTC —
-// force local-midnight parsing instead so the date shown always matches what was picked.
-function fmtDate(iso) {
-  if (!iso) return ''
-  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(iso + 'T00:00:00') : new Date(iso)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-function money(n) { return `$${(Number(n) || 0).toFixed(2)}` }
-
-const FREQUENCY_DEFAULTS = {
-  'per-session': () => ({ start: todayIso(), end: todayIso() }),
-  weekly: () => ({ start: daysAgoIso(6), end: todayIso() }),
-  monthly: () => ({ start: monthStartIso(), end: todayIso() }),
-  package: () => ({ start: daysAgoIso(30), end: todayIso() }),
-}
-
-// Compute billable line items for a client from actual session records in a date range —
-// this is the "generated from actual session data" source of truth, not the calendar.
-function lineItemsFor(client, sessions, start, end) {
-  const inRange = sessions
-    .filter(s => s.clientId === client.id && s.date >= start && s.date <= (end + 'T23:59:59'))
-    .sort((a, b) => a.date.localeCompare(b.date))
-  const hourly = client.billingMode === 'hourly'
-  return inRange.map(s => {
-    const mins = Math.round((s.duration || 0) / 60)
-    const desc = (s.materialsUsed || []).length
-      ? (s.materialsUsed || []).slice(0, 3).map(m => m.title).join(', ') + ((s.materialsUsed || []).length > 3 ? '…' : '')
-      : 'Session'
-    const amount = hourly ? ((s.duration || 0) / 3600) * (Number(client.hourlyRate) || 0) : (Number(client.sessionRate) || 0)
-    return {
-      sessionId: s.id, date: s.date, description: desc,
-      durationLabel: mins ? `${mins} min` : '—',
-      rateLabel: hourly ? `${money(client.hourlyRate)}/hr` : `${money(client.sessionRate)}/session`,
-      amount,
-    }
-  })
-}
+export { resolveProvider }
 
 function BillingSettings({ client, store }) {
+  const providers = store.providers || []
   const [form, setForm] = useState({
-    billingMode: client.billingMode || 'flat',
+    providerId: client.providerId || '',
+    currency: client.currency || '',
+    rateType: rateTypeOf(client),
     sessionRate: client.sessionRate ?? '',
     hourlyRate: client.hourlyRate ?? '',
-    billingFrequency: client.billingFrequency || 'per-session',
+    packageRate: client.packageRate ?? '',
+    packageSize: client.packageSize ?? '',
+    billingFrequency: client.billingFrequency === 'package' ? 'per-session' : (client.billingFrequency || 'per-session'),
     billTo: client.billTo || 'client',
     billToName: client.billToInfo?.name || '',
     billToAddress: client.billToInfo?.address || '',
@@ -59,43 +25,78 @@ function BillingSettings({ client, store }) {
     const next = { ...form, ...patch }
     setForm(next)
     store.updateClient(client.id, {
-      billingMode: next.billingMode,
+      providerId: next.providerId || null,
+      currency: next.currency || null,
+      rateType: next.rateType,
       sessionRate: next.sessionRate === '' ? null : Number(next.sessionRate),
       hourlyRate: next.hourlyRate === '' ? null : Number(next.hourlyRate),
+      packageRate: next.packageRate === '' ? null : Number(next.packageRate),
+      packageSize: next.packageSize === '' ? null : Number(next.packageSize),
       billingFrequency: next.billingFrequency,
       billTo: next.billTo,
       billToInfo: { name: next.billToName, address: next.billToAddress, contact: next.billToContact, reference: next.billToReference },
     })
   }
+  const provider = resolveProvider({ ...client, providerId: form.providerId || client.providerId }, providers)
+
   return (
     <div className="settings-card">
       <div className="settings-card-header"><h2>⚙️ Billing Settings</h2></div>
       <div className="billing-settings-grid">
-        <label>Rate basis
-          <select value={form.billingMode} onChange={e => save({ billingMode: e.target.value })}>
-            <option value="flat">Flat rate per session (default)</option>
-            <option value="hourly">Hourly (by session duration)</option>
+        {providers.length > 1 && (
+          <label>Provider
+            <select value={form.providerId} onChange={e => save({ providerId: e.target.value })}>
+              <option value="">Default ({providers.find(p => p.isDefault)?.name || providers[0]?.name})</option>
+              {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+        )}
+        <label>Currency
+          <select value={form.currency} onChange={e => save({ currency: e.target.value })}>
+            <option value="">Default ({provider?.currency || 'USD'})</option>
+            {['USD', 'CAD', 'EUR', 'GBP', 'AUD', 'PHP', 'INR', 'MXN', 'JPY', 'NZD', 'ZAR', 'SGD'].map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </label>
-        {form.billingMode === 'flat' ? (
-          <label>Rate per session ($)
+        <label>Rate type
+          <select value={form.rateType} onChange={e => save({ rateType: e.target.value })}>
+            <option value="session">Per session (default)</option>
+            <option value="hourly">Hourly (by session duration)</option>
+            <option value="package">Package (flat rate for a bundle of sessions)</option>
+          </select>
+        </label>
+        {form.rateType === 'session' && (
+          <label>Rate per session
             <input type="number" min="0" step="0.01" value={form.sessionRate}
               onChange={e => setForm(f => ({ ...f, sessionRate: e.target.value }))}
               onBlur={() => save({})} placeholder="75.00" />
           </label>
-        ) : (
-          <label>Hourly rate ($/hr)
+        )}
+        {form.rateType === 'hourly' && (
+          <label>Hourly rate
             <input type="number" min="0" step="0.01" value={form.hourlyRate}
               onChange={e => setForm(f => ({ ...f, hourlyRate: e.target.value }))}
               onBlur={() => save({})} placeholder="90.00" />
           </label>
+        )}
+        {form.rateType === 'package' && (
+          <>
+            <label>Package price (flat)
+              <input type="number" min="0" step="0.01" value={form.packageRate}
+                onChange={e => setForm(f => ({ ...f, packageRate: e.target.value }))}
+                onBlur={() => save({})} placeholder="600.00" />
+            </label>
+            <label>Sessions per package
+              <input type="number" min="1" step="1" value={form.packageSize}
+                onChange={e => setForm(f => ({ ...f, packageSize: e.target.value }))}
+                onBlur={() => save({})} placeholder="8" />
+            </label>
+          </>
         )}
         <label>Billing frequency
           <select value={form.billingFrequency} onChange={e => save({ billingFrequency: e.target.value })}>
             <option value="per-session">Per session</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
-            <option value="package">Package of sessions</option>
           </select>
         </label>
         <label>Bill to
@@ -121,10 +122,9 @@ function BillingSettings({ client, store }) {
           </label>
         </div>
       )}
-      <p className="settings-note" style={{ marginTop: 10 }}>
-        "Package of sessions" and "Per session" both work the same way here — pick whatever date
-        range covers what you're billing for when generating an invoice below.
-      </p>
+      {providers.length <= 1 && providers[0] && (
+        <p className="settings-note" style={{ marginTop: 10 }}>Billed as <strong>{providers[0].name}</strong> — add more providers in Settings if this client bills under a different identity (e.g. an agency).</p>
+      )}
     </div>
   )
 }
@@ -134,9 +134,12 @@ function NewInvoiceModal({ client, store, onClose }) {
   const [start, setStart] = useState(defaults.start)
   const [end, setEnd] = useState(defaults.end)
   const [billTo, setBillTo] = useState(client.billTo || 'client')
-  const rateSet = client.billingMode === 'hourly' ? !!client.hourlyRate : !!client.sessionRate
-  const items = lineItemsFor(client, store.sessions || [], start, end)
-  const total = items.reduce((sum, i) => sum + i.amount, 0)
+  const provider = resolveProvider(client, store.providers)
+  const currency = client.currency || provider?.currency || 'USD'
+  const rateType = rateTypeOf(client)
+  const rateSet = hasRateSet(client)
+  const items = lineItemsFor(client, store.sessions || [], start, end, currency)
+  const total = computeTotal(client, items)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState(null)
 
@@ -148,10 +151,11 @@ function NewInvoiceModal({ client, store, onClose }) {
       : { name: client.contactName || client.name, address: client.mailingAddress || '', contact: client.email || client.phone || '', reference: '' }
     const invoice = store.addInvoice({
       clientId: client.id, issueDate: todayIso(), periodStart: start, periodEnd: end,
-      billTo, billToSnapshot, lineItems: items, total,
+      billTo, billToSnapshot, lineItems: items, total, currency,
+      isPackage: rateType === 'package',
     })
     try {
-      const bytes = await buildInvoicePdf({ invoice, client, settings: store.settings })
+      const bytes = await buildInvoicePdf({ invoice, client, provider })
       const filename = `Invoice-${invoice.invoiceNumber}-${client.name.replace(/\s/g, '-')}.pdf`
       const res = await window.api.exportInvoicePdf(filename, bytes)
       setBusy(false)
@@ -183,7 +187,7 @@ function NewInvoiceModal({ client, store, onClose }) {
           </label>
         </div>
 
-        {!rateSet && <div className="wizard-error" style={{ marginTop: 10 }}>⚠ No rate set yet — open Billing Settings above and set a {client.billingMode === 'hourly' ? 'hourly' : 'per-session'} rate first.</div>}
+        {!rateSet && <div className="wizard-error" style={{ marginTop: 10 }}>⚠ No rate set yet — open Billing Settings above and set a {rateType} rate first.</div>}
 
         <div className="invoice-preview">
           {items.length === 0 ? (
@@ -194,13 +198,17 @@ function NewInvoiceModal({ client, store, onClose }) {
               <tbody>
                 {items.map(i => (
                   <tr key={i.sessionId}>
-                    <td>{fmtDate(i.date)}</td><td>{i.description}</td><td>{i.durationLabel}</td><td>{i.rateLabel}</td><td>{money(i.amount)}</td>
+                    <td>{fmtDate(i.date)}</td><td>{i.description}</td><td>{i.durationLabel}</td><td>{i.rateLabel}</td>
+                    <td>{rateType === 'package' ? '—' : money(i.amount, currency)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-          <div className="invoice-preview-total">Total: <strong>{money(total)}</strong></div>
+          {rateType === 'package' && items.length > 0 && (
+            <p className="settings-note" style={{ marginTop: 8 }}>Package rate — a flat {money(client.packageRate, currency)} covers this invoice regardless of the {items.length} session{items.length === 1 ? '' : 's'} listed above.</p>
+          )}
+          <div className="invoice-preview-total">Total: <strong>{money(total, currency)}</strong></div>
         </div>
 
         {status && <div className="fx-status" style={{ marginTop: 10 }}>{status}</div>}
@@ -218,10 +226,11 @@ function NewInvoiceModal({ client, store, onClose }) {
 
 function InvoiceRow({ invoice, client, store }) {
   const [busy, setBusy] = useState(false)
+  const provider = resolveProvider(client, store.providers)
   const reexport = async () => {
     setBusy(true)
     try {
-      const bytes = await buildInvoicePdf({ invoice, client, settings: store.settings })
+      const bytes = await buildInvoicePdf({ invoice, client, provider })
       await window.api.exportInvoicePdf(`Invoice-${invoice.invoiceNumber}-${client.name.replace(/\s/g, '-')}.pdf`, bytes)
     } finally { setBusy(false) }
   }
@@ -233,7 +242,7 @@ function InvoiceRow({ invoice, client, store }) {
         <span className={`invoice-badge ${invoice.status}`}>{invoice.status === 'paid' ? '✓ Paid' : 'Unpaid'}</span>
       </div>
       <div className="invoice-row-right">
-        <strong>{money(invoice.total)}</strong>
+        <strong>{money(invoice.total, invoice.currency)}</strong>
         <button className="btn-secondary" disabled={busy} onClick={reexport}>📄 Re-export PDF</button>
         <button className="btn-secondary" onClick={() => store.markInvoicePaid(invoice.id, invoice.status !== 'paid')}>
           {invoice.status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
@@ -249,6 +258,7 @@ export default function BillingTab({ store, client }) {
   const [showNew, setShowNew] = useState(false)
   const invoices = [...(store.invoices || [])].filter(i => i.clientId === client.id).sort((a, b) => (b.issueDate || '').localeCompare(a.issueDate || ''))
   const unpaidTotal = invoices.filter(i => i.status !== 'paid').reduce((s, i) => s + (i.total || 0), 0)
+  const currency = client.currency || resolveProvider(client, store.providers)?.currency || 'USD'
 
   return (
     <div>
@@ -259,7 +269,7 @@ export default function BillingTab({ store, client }) {
           <h2>🧾 Invoices</h2>
           <button className="btn-primary" onClick={() => setShowNew(true)}>+ New Invoice</button>
         </div>
-        {unpaidTotal > 0 && <p className="settings-note">Outstanding balance: <strong>{money(unpaidTotal)}</strong></p>}
+        {unpaidTotal > 0 && <p className="settings-note">Outstanding balance: <strong>{money(unpaidTotal, currency)}</strong></p>}
         {invoices.length === 0 ? (
           <p className="settings-note">No invoices generated yet for {client.name}.</p>
         ) : (

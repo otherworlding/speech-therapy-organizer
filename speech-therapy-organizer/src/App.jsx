@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useStore } from './store/useStore'
 import Sidebar from './components/Sidebar'
 import ClientsPage from './pages/ClientsPage'
@@ -32,6 +32,20 @@ export default function App() {
   }
   const endSession = () => { setSessionClientId(null); setSessionTools(null); setView('clients') }
 
+  // One-time migration: seed a default Provider from the old global branding settings
+  // (appName/logoPath) so existing users don't lose their sidebar identity when the
+  // per-client custom-branding design was replaced by a proper Providers system.
+  useEffect(() => {
+    if (!store.loaded || store.providers.length > 0) return
+    store.addProvider({
+      name: store.settings?.appName?.trim() || 'My Practice',
+      logoPath: store.settings?.logoPath || null,
+      isDefault: true,
+    })
+  }, [store.loaded, store.providers.length])
+
+  const defaultProvider = store.providers.find(p => p.isDefault) || store.providers[0] || null
+
   if (!store.loaded) return <div className="loading">Loading…</div>
 
   if (view === 'session' && sessionClientId) {
@@ -42,7 +56,7 @@ export default function App() {
     <div className="app-shell">
       <div className="app-titlebar" />
       <div className="app-body">
-      <Sidebar view={view} setView={setView} settings={store.settings} />
+      <Sidebar view={view} setView={setView} provider={defaultProvider} />
       <main className="main-content">
         {view === 'clients' && (
           <ClientsPage store={store} onOpenClient={openClient} onStartSession={requestSession} />
