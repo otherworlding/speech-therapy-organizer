@@ -5,7 +5,7 @@ track it, offset it, and learn to code more efficiently. Measured metrics are
 reliable; the energy (kWh) figures are **honest estimates with wide error bars**,
 not precise measurements.
 
-_Last updated: 2026-08-08_
+_Last updated: 2026-08-09_
 
 ## Measured facts
 
@@ -18,6 +18,41 @@ _Last updated: 2026-08-08_
 | Renderer-only builds | ~82 |
 | Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 9 (2026-08-09): Providers system + consolidated agency invoicing
+Replaced the single global branding + ad hoc per-client-override design from Round 7
+with a proper **Providers** collection — reusable billing identities (name, logo,
+"bill from" address/contact/email/phone, currency, and a "consolidate all clients
+onto one invoice" flag), managed in Settings. Each client now picks a Provider on
+their Billing tab via a dropdown that's hidden entirely when only one exists (auto-
+assigned) — replacing the old per-client custom-branding checkbox. A one-time
+migration seeds a default Provider from the prior global appName/logoPath settings
+so existing users don't lose their sidebar identity. Client billing also gained
+`currency` (12 common codes via `Intl.NumberFormat`) and a third rate type,
+**package** (flat price for a bundle of sessions — itemizes real sessions for the
+record but prices as one flat line), alongside the existing session/hourly modes;
+billing frequency trimmed to per-session/weekly/monthly now that package is a rate
+type, not a frequency.
+
+Biggest piece: **consolidated provider invoicing** — for a therapist subcontracted
+by an agency, a new flow on the Invoice Tracker page bills the agency once per
+period for every client assigned to that provider, itemized by client (bold
+subheader per client) with each session's real date, a per-client subtotal, and a
+grand total. Required the invoice PDF to support two shapes (single-client vs.
+grouped-by-client) and a two-column FROM/BILL TO letterhead block (provider's
+bill-from info vs. the invoice recipient). Shared billing math (`lineItemsFor`,
+`computeTotal`, `resolveProvider`, currency formatting) was pulled out of
+BillingTab.jsx into a new `src/utils/billing.js` so the per-client and consolidated
+flows can't drift apart.
+
+**Footprint note:** entirely dev-mode fix-and-verify, no build until this round's
+close. Verified live end-to-end: migration (confirmed old branding carried over to
+a seeded default provider), a second provider with bill-from data, assigning a
+client to it, generating both a per-client and a consolidated multi-client invoice,
+and reading the actual generated PDF bytes back to confirm layout (client subheader
+grouping, subtotal/grand total math, FROM/BILL TO columns) — not just the on-screen
+preview. Test provider/invoice cleaned up before commit so Settings doesn't carry
+fake agency data.
 
 ### Round 8 (2026-08-08): Per-client billing & PDF invoicing
 Added a "🧾 Billing" tab to the Client Detail page (moved there from an earlier plan
