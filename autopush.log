@@ -19360,3 +19360,9 @@ To https://github.com/otherworlding/speech-therapy-organizer.git
 To https://github.com/otherworlding/speech-therapy-organizer.git
    49da320..24dc298  main -> main
 2026-08-09 00:07 — pushed changes
+[main 5af05e8] Auto-save: 2026-08-09 01:03
+ 10 files changed, 561 insertions(+), 216 deletions(-)
+ create mode 100644 speech-therapy-organizer/src/utils/billing.js
+To https://github.com/otherworlding/speech-therapy-organizer.git
+   24dc298..5af05e8  main -> main
+2026-08-09 01:03 — pushed changes
