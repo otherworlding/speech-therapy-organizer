@@ -318,9 +318,14 @@ ipcMain.handle('path:is-directory', (_, p) => {
 })
 
 // Pick + copy a custom logo image for Settings branding. Kept in its own folder,
-// always named "logo.<ext>" so re-uploading cleanly replaces the previous one
-// instead of accumulating files (unlike the shared materials library folder).
-ipcMain.handle('branding:pick-logo', async () => {
+// always named "logo.<ext>" (or "logo-<key>.<ext>" for a per-client override, key
+// being the client id) so re-uploading cleanly replaces the previous one instead
+// of accumulating files (unlike the shared materials library folder).
+function logoBase(key) {
+  const safe = key ? String(key).replace(/[^a-zA-Z0-9_-]/g, '_') : null
+  return safe ? `logo-${safe}` : 'logo'
+}
+ipcMain.handle('branding:pick-logo', async (_, key) => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
     filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'] }],
@@ -329,22 +334,28 @@ ipcMain.handle('branding:pick-logo', async () => {
   const srcPath = result.filePaths[0]
   const brandDir = path.join(DATA_DIR, 'branding')
   if (!fs.existsSync(brandDir)) fs.mkdirSync(brandDir, { recursive: true })
-  // Clear any previously saved logo (whatever extension it had) before writing the new one
+  const base = logoBase(key)
+  const pattern = new RegExp(`^${base}\\.[a-zA-Z0-9]+$`)
+  // Clear any previously saved logo for this same key (whatever extension it had)
+  // before writing the new one — the regex anchors so "logo." never matches "logo-x.".
   for (const f of fs.readdirSync(brandDir)) {
-    if (f.startsWith('logo.')) fs.unlinkSync(path.join(brandDir, f))
+    if (pattern.test(f)) fs.unlinkSync(path.join(brandDir, f))
   }
   const ext = path.extname(srcPath) || '.png'
-  const destPath = path.join(brandDir, `logo${ext}`)
+  const destPath = path.join(brandDir, `${base}${ext}`)
   fs.copyFileSync(srcPath, destPath)
   return destPath
 })
 
-// Remove the saved custom logo (revert to the default sidebar branding)
-ipcMain.handle('branding:clear-logo', async () => {
+// Remove a saved logo (default, or a specific client's override) — reverts to falling
+// back on the default branding for that key.
+ipcMain.handle('branding:clear-logo', async (_, key) => {
   const brandDir = path.join(DATA_DIR, 'branding')
   if (fs.existsSync(brandDir)) {
+    const base = logoBase(key)
+    const pattern = new RegExp(`^${base}\\.[a-zA-Z0-9]+$`)
     for (const f of fs.readdirSync(brandDir)) {
-      if (f.startsWith('logo.')) fs.unlinkSync(path.join(brandDir, f))
+      if (pattern.test(f)) fs.unlinkSync(path.join(brandDir, f))
     }
   }
   return true

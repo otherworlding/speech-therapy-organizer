@@ -218,6 +218,73 @@ function BrandingCard({ store }) {
   )
 }
 
+// Lets a client's invoices use a different business name/logo than the default
+// above — for a therapist who works for multiple agencies, is self-employed on the
+// side, or otherwise bills different clients under different identities. Off by
+// default (uses the shared branding above) unless explicitly enabled per client.
+function PerClientBrandingCard({ store }) {
+  const [clientId, setClientId] = useState(store.clients[0]?.id || '')
+  const client = store.clients.find(c => c.id === clientId)
+  const cb = client?.customBranding || {}
+  const [name, setName] = useState(cb.businessName || '')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => { setName(client?.customBranding?.businessName || '') }, [clientId])
+
+  if (store.clients.length === 0) return null
+
+  const patch = (updates) => store.updateClient(clientId, { customBranding: { ...cb, ...updates } })
+  const saveName = () => { if (name.trim() !== (cb.businessName || '')) patch({ businessName: name.trim() }) }
+  const pickLogo = async () => {
+    setBusy(true)
+    const destPath = await window.api.pickLogo(clientId)
+    setBusy(false)
+    if (destPath) patch({ logoPath: destPath })
+  }
+  const clearLogo = async () => {
+    setBusy(true)
+    await window.api.clearLogo(clientId)
+    setBusy(false)
+    patch({ logoPath: null })
+  }
+
+  return (
+    <div className="settings-card">
+      <div className="settings-card-header"><h2>🏢 Per-Client Branding</h2></div>
+      <p className="settings-note">
+        Override the practice name/logo on a specific client's invoices — useful for agency work,
+        self-employed side clients, or any client that needs a different letterhead than the default above.
+      </p>
+      <label style={{ display: 'block', margin: '10px 0' }}>Client
+        <select value={clientId} onChange={e => setClientId(e.target.value)} style={{ maxWidth: 320 }}>
+          {store.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </label>
+      <label className="checkbox-row">
+        <input type="checkbox" checked={!!cb.enabled} onChange={e => patch({ enabled: e.target.checked })} />
+        Use custom branding for {client?.name}'s invoices (unchecked = use the default branding above)
+      </label>
+      {cb.enabled && (
+        <div className="branding-row" style={{ marginTop: 12 }}>
+          <div className="branding-logo-preview">
+            {cb.logoPath ? <img src={`file://${cb.logoPath}`} alt="Logo" /> : <span className="branding-logo-placeholder">🏢</span>}
+          </div>
+          <div className="branding-controls">
+            <label style={{ display: 'block', marginBottom: 10 }}>Business name
+              <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName}
+                placeholder="Agency or DBA name" style={{ maxWidth: 320 }} />
+            </label>
+            <div className="backup-actions">
+              <button className="btn-primary" onClick={pickLogo} disabled={busy}>🖼 Choose Logo Image…</button>
+              {cb.logoPath && <button className="btn-secondary" onClick={clearLogo} disabled={busy}>Remove Logo</button>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function SettingsPage({ store }) {
   const zoom = store.settings?.zoom || {}
   const connected = !!zoom.connected
@@ -262,6 +329,7 @@ export default function SettingsPage({ store }) {
 
       {/* ── Branding ── */}
       <BrandingCard store={store} />
+      <PerClientBrandingCard store={store} />
 
       {/* ── Zoom integration ── */}
       <div className="settings-card">

@@ -5,6 +5,7 @@ const NAV = [
   { id: 'calendar', icon: '📅', label: 'Schedule' },
   { id: 'materials', icon: '📁', label: 'Library & Planner' },
   { id: 'reports', icon: '📋', label: 'Session Reports' },
+  { id: 'invoices', icon: '🧾', label: 'Invoices' },
   { id: 'settings', icon: '⚙️', label: 'Settings' },
 ]
 

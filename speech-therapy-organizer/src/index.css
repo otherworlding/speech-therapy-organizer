@@ -985,3 +985,10 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .invoice-row-right { display: flex; align-items: center; gap: 8px; }
 .invoice-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: #fdecea; color: #b3441f; }
 .invoice-badge.paid { background: #e7f6ed; color: #1e824c; }
+.invoice-row-client { font-weight: 600; }
+.invoice-summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.invoice-summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); }
+.invoice-summary-label { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+.invoice-summary-value { font-size: 24px; font-weight: 700; }
+.invoice-summary-value.paid { color: #1e824c; }
+.invoice-summary-value.unpaid { color: #b3441f; }

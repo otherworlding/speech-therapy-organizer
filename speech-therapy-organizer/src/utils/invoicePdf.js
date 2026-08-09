@@ -35,7 +35,12 @@ export async function buildInvoicePdf({ invoice, client, settings }) {
   let page = pdfDoc.addPage([PAGE_W, PAGE_H])
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
   const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-  const logoImg = await embedLogo(pdfDoc, settings?.logoPath)
+  // A client can override the letterhead (agency work, self-employed side clients,
+  // etc.) via Settings → Per-Client Branding — falls back to the shared default.
+  const custom = client?.customBranding?.enabled ? client.customBranding : null
+  const brandName = (custom?.businessName?.trim()) || settings?.appName?.trim() || 'Speech Therapy Organizer'
+  const brandLogoPath = custom ? custom.logoPath : settings?.logoPath
+  const logoImg = await embedLogo(pdfDoc, brandLogoPath)
 
   const dark = rgb(0.1, 0.12, 0.18), muted = rgb(0.45, 0.47, 0.52), line = rgb(0.85, 0.86, 0.88)
   let y = PAGE_H - MARGIN
@@ -63,9 +68,9 @@ export async function buildInvoicePdf({ invoice, client, settings }) {
   if (logoImg) {
     const h = 36, scale = h / logoImg.height
     page.drawImage(logoImg, { x: MARGIN, y: y - h + 6, width: logoImg.width * scale, height: h })
-    text(settings?.appName?.trim() || 'Speech Therapy Organizer', MARGIN + logoImg.width * scale + 10, y - 14, { size: 14, f: bold })
+    text(brandName, MARGIN + logoImg.width * scale + 10, y - 14, { size: 14, f: bold })
   } else {
-    text(settings?.appName?.trim() || 'Speech Therapy Organizer', MARGIN, y - 14, { size: 16, f: bold })
+    text(brandName, MARGIN, y - 14, { size: 16, f: bold })
   }
   text('INVOICE', PAGE_W - MARGIN - 90, y - 10, { size: 18, f: bold })
   text(`#${invoice.invoiceNumber}`, PAGE_W - MARGIN - 90, y - 28, { size: 10, color: muted })
