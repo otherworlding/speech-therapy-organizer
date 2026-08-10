@@ -169,6 +169,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
   const [linkOpen, setLinkOpen] = useState(false)    // YouTube-link modal
   const [smartView, setSmartView] = useState(null)   // 'recent' | 'pinned' | null
   const [syncDropData, setSyncDropData] = useState(null)  // a recognized sync file dropped onto the Library
+  const [moveToOpen, setMoveToOpen] = useState(false) // "Move to…" picker for the current selection
   const rootRef = useRef(null)
   const anchorRef = useRef(null)          // last-clicked key, for Shift-range selection
   const visibleKeysRef = useRef([])       // ordered keys currently on screen
@@ -553,6 +554,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
         <div className="fx-selbar">
           <span className="fx-selbar-count">{selected.size} selected</span>
           <div className="fx-selbar-actions">
+            <button className="btn-secondary" onClick={() => setMoveToOpen(true)}>📁 Move to…</button>
             <button className="btn-danger fx-del-btn" onClick={deleteSelected}>🗑 Delete</button>
             <button className="btn-secondary" onClick={clearSelect}>Deselect</button>
           </div>
@@ -620,6 +622,24 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
         <MaterialInspector key={inspectMaterial.id} material={inspectMaterial} store={store} onClose={() => setInspectId(null)} />
       )}
 
+      {/* Move to… picker — spans the whole tree, not just this scope, so a material can
+          jump straight from the Library into a client's Main Collection (or back) without
+          switching tabs or relying on drag-and-drop. */}
+      {moveToOpen && (
+        <MoveToModal
+          store={store}
+          selectedKeys={[...selected]}
+          rootLabel={rootLabel}
+          onMove={(folderId) => {
+            moveInto([...selected], folderId)
+            setMoveToOpen(false)
+            setStatus(`✓ Moved ${selected.size} item${selected.size > 1 ? 's' : ''}`)
+            setTimeout(() => setStatus(null), 3000)
+          }}
+          onCancel={() => setMoveToOpen(false)}
+        />
+      )}
+
       {/* New folder modal */}
       {newFolderOpen && (
         <FolderModal onSave={(name, color) => { store.addFolder(name, color, currentFolderId); setNewFolderOpen(false) }} onCancel={() => setNewFolderOpen(false)} />
@@ -649,6 +669,65 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Build a readable path for a folder — e.g. "🗂 Emma — Main Collection / Artic Games"
+// or "📁 Library / Winter Unit" — so the flat picker below reads like a location, not
+// just a bare folder name (several clients can each have a "Games" folder).
+function folderPathLabel(f, folders, clients) {
+  const chain = []
+  let cur = f
+  while (cur) { chain.unshift(cur); cur = folders.find(x => x.id === cur.parentId) || null }
+  const top = chain[0]
+  const prefix = top.mainCollection && top.clientId
+    ? `🗂 ${clients.find(c => c.id === top.clientId)?.name || 'Client'} — Main Collection`
+    : `📁 ${top.name}`
+  const rest = chain.slice(1).map(x => x.name)
+  return [prefix, ...rest].join(' / ')
+}
+
+// Flat, searchable "Move to…" picker spanning every folder in the app (Library +
+// every client's Main Collection) — replaces having to drag an item across tabs or
+// remember the ⌘C/⌘V trick to relocate something.
+function MoveToModal({ store, selectedKeys, rootLabel, onMove, onCancel }) {
+  const [q, setQ] = useState('')
+  const folders = store.folders || []
+  const clients = store.clients || []
+  const draggedFolderIds = selectedKeys.filter(k => k.startsWith('f:')).map(k => k.slice(2))
+  const isDescendant = (candidateId, ancestorId) => {
+    let cur = folders.find(f => f.id === candidateId)
+    while (cur) { if (cur.id === ancestorId) return true; cur = folders.find(f => f.id === cur.parentId) }
+    return false
+  }
+  // A folder can't be moved into itself or into its own descendant
+  const blocked = (fid) => draggedFolderIds.some(dfid => fid === dfid || isDescendant(fid, dfid))
+
+  const options = folders
+    .filter(f => !blocked(f.id))
+    .map(f => ({ id: f.id, label: folderPathLabel(f, folders, clients) }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+  const query = q.trim().toLowerCase()
+  const visible = query ? options.filter(o => o.label.toLowerCase().includes(query)) : options
+
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <h2>📁 Move to…</h2>
+        <input className="fx-search" autoFocus style={{ width: '100%', marginBottom: 10 }}
+          placeholder="Search folders…" value={q} onChange={e => setQ(e.target.value)} />
+        <div className="move-list">
+          <button className="move-item" onClick={() => onMove(null)}>{rootLabel || '🏠 Library (root)'}</button>
+          {visible.map(o => (
+            <button key={o.id} className="move-item" onClick={() => onMove(o.id)}>{o.label}</button>
+          ))}
+          {visible.length === 0 && query && <div className="settings-note" style={{ padding: '8px 4px' }}>No folders match “{q}”.</div>}
+        </div>
+        <div className="form-actions">
+          <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
     </div>
   )
 }
