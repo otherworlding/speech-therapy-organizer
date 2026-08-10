@@ -133,7 +133,8 @@
       "Bash(awk '/^export default function FinderView/,0' \"/Users/otherworlding/Asset calulation app/speech-therapy-organizer/src/components/FinderView.jsx\")",
       "Bash(open ~/Desktop/Invoice-1002-dan.pdf)",
       "Bash(open \"/Volumes/Speech Therapy Organizer 1.0.0-arm64/Speech Therapy Organizer.app\")",
-      "Bash(osascript -e 'quit app \"Speech Therapy Organizer\"')"
+      "Bash(osascript -e 'quit app \"Speech Therapy Organizer\"')",
+      "Bash(pkill -f \"vite --port 5173\")"
     ]
   }
 }
