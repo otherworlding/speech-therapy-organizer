@@ -259,6 +259,35 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
     return created.id
   }
 
+  // Retroactive version of the same auto-sort — scans everything already in this
+  // scope (any folder, not just loose root-level files) and files pptx/video/YouTube
+  // items into Games/Videos. Only offered on the general Library (autoSortByKind),
+  // and confirmed first since it can move things out of folders organized by hand.
+  const materialAutoSortKind = (m) => {
+    if (m.type === 'youtube') return 'videos'
+    if (m.filePath) return autoSortKind(m.filePath)
+    return null
+  }
+  const sortExistingByKind = () => {
+    const matches = scopedMaterials.filter(m => {
+      const kind = materialAutoSortKind(m)
+      if (!kind) return false
+      const currentFolder = folders.find(f => f.id === m.folderId)
+      return currentFolder?.systemFolder !== kind
+    })
+    if (matches.length === 0) {
+      setStatus('Nothing to sort — everything by kind is already filed.')
+      setTimeout(() => setStatus(null), 3000)
+      return
+    }
+    if (!window.confirm(`Move ${matches.length} item${matches.length > 1 ? 's' : ''} into Games/Videos by kind? This can move files out of folders you organized by hand.`)) return
+    const byKind = { games: [], videos: [] }
+    matches.forEach(m => byKind[materialAutoSortKind(m)].push(m.id))
+    Object.entries(byKind).forEach(([kind, ids]) => { if (ids.length) store.moveMaterials(ids, ensureSystemFolder(kind)) })
+    setStatus(`✓ Sorted ${matches.length} item${matches.length > 1 ? 's' : ''} by kind`)
+    setTimeout(() => setStatus(null), 4000)
+  }
+
   // ── Import (files + recursive folders), no tagging gate ──
   const importDropped = useCallback(async (dropped, targetFolderId) => {
     if (!dropped.length) { setStatus('⚠ Drop produced no readable file paths.'); return }
@@ -582,6 +611,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
           <button className="btn-secondary" onClick={pickFiles} disabled={importing}>📥 Files</button>
           <button className="btn-secondary" onClick={pickFolders} disabled={importing}>🗂 Folder</button>
           <button className="btn-secondary" onClick={() => setLinkOpen(true)}>🔗 Link</button>
+          {autoSortByKind && <button className="btn-secondary" onClick={sortExistingByKind} title="Retroactively move existing PowerPoint/video/YouTube items into Games/Videos">🧹 Sort existing</button>}
         </div>
       </div>
 
