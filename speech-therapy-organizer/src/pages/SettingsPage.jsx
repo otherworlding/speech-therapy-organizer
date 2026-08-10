@@ -270,6 +270,36 @@ function ProviderRow({ provider, isOnly, store }) {
   )
 }
 
+const THEMES = [
+  { id: 'calm', label: 'Clinical Calm', desc: 'The original look — soft blue-grey, system sans.', swatches: ['#f5f6fa', '#4f8ef7', '#1e2235'], font: '-apple-system, sans-serif' },
+  { id: 'warm', label: 'Warm & Playful', desc: 'Cream + coral, rounded Quicksand/Nunito — kid-facing.', swatches: ['#fdf6ec', '#ea7c4f', '#4a3628'], font: "'Quicksand', sans-serif" },
+  { id: 'dark', label: 'Focused Dark', desc: 'Charcoal + teal, low glare for evening charting.', swatches: ['#14171f', '#2dd4bf', '#0d0f16'], font: '-apple-system, sans-serif' },
+  { id: 'slate', label: 'Professional Slate', desc: 'Slate + navy, serif headings — formal/agency feel.', swatches: ['#eef1f5', '#2c4a6e', '#1a2634'], font: "'Source Serif 4', Georgia, serif" },
+]
+
+function ThemeCard({ store }) {
+  const active = store.settings?.theme || 'calm'
+  return (
+    <div className="settings-card">
+      <div className="settings-card-header"><h2>🎨 Appearance</h2></div>
+      <p className="settings-note">Pick a vibe — changes color and typography app-wide, instantly.</p>
+      <div className="theme-grid">
+        {THEMES.map(t => (
+          <button key={t.id} className={`theme-swatch-card ${active === t.id ? 'selected' : ''}`}
+            onClick={() => store.updateSettings({ theme: t.id })}>
+            <div className="theme-swatch-dots">
+              {t.swatches.map((c, i) => <span key={i} className="theme-swatch-dot" style={{ background: c }} />)}
+            </div>
+            <div className="theme-swatch-name" style={{ fontFamily: t.font }}>{t.label}</div>
+            <div className="theme-swatch-desc">{t.desc}</div>
+            {active === t.id && <div className="theme-swatch-badge">✓ Active</div>}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function ProvidersCard({ store }) {
   const providers = store.providers || []
   return (
@@ -331,6 +361,9 @@ export default function SettingsPage({ store }) {
   return (
     <div className="page">
       <div className="page-header"><h1>Settings</h1></div>
+
+      {/* ── Appearance ── */}
+      <ThemeCard store={store} />
 
       {/* ── Providers (billing identities) ── */}
       <ProvidersCard store={store} />

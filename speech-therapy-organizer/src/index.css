@@ -1,5 +1,17 @@
+/* Webfonts for the non-default Appearance presets (Warm & Playful / Professional Slate).
+   Safe to fail offline — every --font-* stack below falls back to a real system font,
+   so a missing network just means the vibe's typography doesn't show up, not breakage.
+   Must stay the very first statement in the file — @import rules require that. */
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Nunito:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── Appearance presets ──
+   :root is "Clinical Calm" (the original default, unchanged). Each other preset is
+   selected by stamping data-theme on <html> (see App.jsx) and only overrides the
+   variables that actually change — anything not listed here (--radius, --shadow,
+   --session-*, --danger/success/warn) stays the same across all four on purpose,
+   so status colors and the session-runner screen stay legible no matter the vibe. */
 :root {
   --bg: #f5f6fa; --surface: #ffffff; --sidebar-bg: #1e2235; --sidebar-text: #c8ccda;
   --sidebar-active: #4f8ef7; --primary: #4f8ef7; --primary-hover: #3a7ae8;
@@ -7,9 +19,37 @@
   --text: #1e2235; --text-muted: #6b7080; --border: #e2e5ef;
   --radius: 10px; --shadow: 0 2px 12px rgba(0,0,0,0.08);
   --session-bg: #0f1523; --session-surface: #1e2840; --session-border: rgba(255,255,255,0.08);
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+:root[data-theme="warm"] {
+  --bg: #fdf6ec; --surface: #fffdf9; --primary: #ea7c4f; --primary-hover: #d96a3e;
+  --text: #4a3a2f; --text-muted: #8a7563; --border: #f0ddc7;
+  --sidebar-bg: #4a3628; --sidebar-text: #ecd9c6; --sidebar-active: #ea7c4f;
+  --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+:root[data-theme="dark"] {
+  --bg: #14171f; --surface: #1c202c; --primary: #2dd4bf; --primary-hover: #22b8a5;
+  --text: #e7e9f0; --text-muted: #9a9fb0; --border: #2c3140;
+  --sidebar-bg: #0d0f16; --sidebar-text: #b7bdd0; --sidebar-active: #2dd4bf;
+  --shadow: 0 2px 12px rgba(0,0,0,0.35);
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+:root[data-theme="slate"] {
+  --bg: #eef1f5; --surface: #ffffff; --primary: #2c4a6e; --primary-hover: #23384f;
+  --text: #212a35; --text-muted: #616e7d; --border: #d7dde5;
+  --sidebar-bg: #1a2634; --sidebar-text: #b9c4d0; --sidebar-active: #2c4a6e;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Source Serif 4', Georgia, serif;
+}
+
+body { font-family: var(--font-body); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+h1, h2, h3, .logo-text { font-family: var(--font-heading); }
 
 .crash-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 40px; text-align: center; background: var(--bg); }
 .crash-icon { font-size: 48px; }
@@ -996,6 +1036,17 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .invoice-summary-value { font-size: 24px; font-weight: 700; }
 .invoice-summary-value.paid { color: #1e824c; }
 .invoice-summary-value.unpaid { color: #b3441f; }
+
+/* ── Appearance presets ── */
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 10px; }
+.theme-swatch-card { position: relative; text-align: left; background: var(--surface); border: 2px solid var(--border); border-radius: 10px; padding: 14px; cursor: pointer; transition: border-color 0.12s; }
+.theme-swatch-card:hover { border-color: var(--primary); }
+.theme-swatch-card.selected { border-color: var(--primary); background: var(--bg); }
+.theme-swatch-dots { display: flex; gap: 6px; margin-bottom: 10px; }
+.theme-swatch-dot { width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,0.08) inset; }
+.theme-swatch-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.theme-swatch-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.theme-swatch-badge { position: absolute; top: 10px; right: 10px; font-size: 11px; font-weight: 700; color: var(--primary); }
 
 /* ── Providers (billing identities) ── */
 .provider-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }

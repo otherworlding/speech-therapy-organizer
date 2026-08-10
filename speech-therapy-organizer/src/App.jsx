@@ -46,6 +46,12 @@ export default function App() {
 
   const defaultProvider = store.providers.find(p => p.isDefault) || store.providers[0] || null
 
+  // Appearance preset — stamped on <html> so every CSS var override in index.css
+  // (:root[data-theme="..."]) applies app-wide, including the sidebar.
+  useEffect(() => {
+    document.documentElement.dataset.theme = store.settings?.theme || 'calm'
+  }, [store.settings?.theme])
+
   if (!store.loaded) return <div className="loading">Loading…</div>
 
   if (view === 'session' && sessionClientId) {
