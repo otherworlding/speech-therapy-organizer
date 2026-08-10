@@ -358,6 +358,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .workspace { display: flex; gap: 14px; align-items: flex-start; }
 .ws-clients { width: 340px; flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; max-height: calc(100vh - 140px); overflow-y: auto; position: sticky; top: 0; }
 .ws-materials { flex: 1; min-width: 0; }
+/* Client Detail page's "Materials & Sessions" tab — the left pane is now the primary
+   content (one client's own tree), not a sidebar meant to list every client, so it
+   gets real width instead of the old fixed 340px. */
+.cm-left { width: auto; flex: 1.2; min-width: 380px; }
 .ws-pane-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ws-clientviewseg { text-transform: none; }
 .ws-head-actions { display: flex; gap: 6px; align-items: center; }

@@ -1,48 +1,26 @@
 import React, { useState } from 'react'
-import MaterialCard from '../components/MaterialCard'
 import GoalsPage from './GoalsPage'
 import BillingTab from '../components/BillingTab'
-
-const CATEGORIES = ['Language', 'Comprehension', 'Pragmatic', 'Age']
+import ClientMaterials from '../components/ClientMaterials'
 
 export default function ClientDetailPage({ store, clientId, onBack, onStartSession }) {
   const client = store.clients.find(c => c.id === clientId)
-  const [mainTab, setMainTab] = useState('materials') // materials | goals | history
-  const [catFilter, setCatFilter] = useState('All')
-  const [showAssignModal, setShowAssignModal] = useState(false)
-  const [showTransfer, setShowTransfer] = useState(false)
-  const [search, setSearch] = useState('')
-  const [assignSearch, setAssignSearch] = useState('')
+  const [mainTab, setMainTab] = useState('materials') // materials | goals | history | billing
   const [editNotes, setEditNotes] = useState(false)
   const [notes, setNotes] = useState(client?.notes || '')
-
-  const isElectron = typeof window !== 'undefined' && window.api
 
   if (!client) return <div className="page"><button onClick={onBack}>← Back</button><p>Client not found.</p></div>
 
   const assignedMaterials = store.materials.filter(m => client.materialIds?.includes(m.id))
-  const unassignedMaterials = store.materials.filter(m => !client.materialIds?.includes(m.id))
   const clientSessions = (store.sessions||[]).filter(s => s.clientId === clientId).reverse().slice(0, 5)
 
-  const filtered = assignedMaterials.filter(m => {
-    if (catFilter !== 'All' && m.category !== catFilter) return false
-    if (search && !m.title.toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  })
-  const filteredUnassigned = unassignedMaterials.filter(m =>
-    !assignSearch || m.title.toLowerCase().includes(assignSearch.toLowerCase())
-  )
-
-  const openMaterial = async (material) => {
-    if (isElectron && material.filePath) await window.api.openFile(material.filePath)
-  }
   const saveNotes = () => { store.updateClient(clientId, { notes }); setEditNotes(false) }
 
   const dob = client.dob ? new Date(client.dob) : null
   const age = dob ? getAge(dob) : null
 
   return (
-    <div className="page">
+    <div className="page page-wide">
       <button className="btn-back" onClick={onBack}>← Back to Clients</button>
 
       <div className="client-header">
@@ -53,10 +31,6 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
         </div>
         <div className="client-header-actions">
           <button className="btn-start-session-large" onClick={() => onStartSession(clientId)}>▶ Start Session</button>
-          <button className="btn-primary" onClick={() => setShowAssignModal(true)}>+ Assign Material</button>
-          {store.clients.length > 1 && (
-            <button className="btn-secondary" onClick={() => setShowTransfer(true)}>⇄ From another client</button>
-          )}
         </div>
       </div>
 
@@ -82,7 +56,7 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
       {/* Main tabs */}
       <div className="detail-tabs">
         <button className={`detail-tab ${mainTab==='materials'?'active':''}`} onClick={()=>setMainTab('materials')}>
-          Materials ({assignedMaterials.length})
+          🗂 Materials & Sessions ({assignedMaterials.length})
         </button>
         <button className={`detail-tab ${mainTab==='goals'?'active':''}`} onClick={()=>setMainTab('goals')}>
           Goals ({(store.goals||[]).filter(g=>g.clientId===clientId&&g.active).length})
@@ -95,28 +69,9 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
         </button>
       </div>
 
-      {/* Materials tab */}
-      {mainTab === 'materials' && (
-        <>
-          <div className="filter-bar">
-            <input className="search-input" placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)} />
-            <div className="filter-tabs">
-              {['All',...CATEGORIES].map(cat => (
-                <button key={cat} className={`filter-tab ${catFilter===cat?'active':''}`} onClick={()=>setCatFilter(cat)}>{cat}</button>
-              ))}
-            </div>
-          </div>
-          {filtered.length === 0 ? (
-            <div className="empty-state"><div className="empty-icon">📂</div><p>{assignedMaterials.length===0?'No materials assigned yet.':'No materials match this filter.'}</p></div>
-          ) : (
-            <div className="materials-list">
-              {filtered.map(m => (
-                <MaterialCard key={m.id} material={m} onOpen={openMaterial} onDelete={() => store.unassignMaterial(clientId, m.id)} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+      {/* Materials & Sessions tab — Main Collection, Session Materials, In-Person, Homework,
+          with an embedded Library panel for dragging things straight in */}
+      {mainTab === 'materials' && <ClientMaterials store={store} client={client} />}
 
       {/* Goals tab */}
       {mainTab === 'goals' && <GoalsPage store={store} clientId={clientId} />}
@@ -140,32 +95,6 @@ export default function ClientDetailPage({ store, clientId, onBack, onStartSessi
 
       {/* Billing tab */}
       {mainTab === 'billing' && <BillingTab store={store} client={client} />}
-
-      {/* Transfer from another client */}
-      {showTransfer && (
-        <TransferModal
-          store={store} targetClient={client}
-          onClose={() => setShowTransfer(false)}
-        />
-      )}
-
-      {/* Assign modal */}
-      {showAssignModal && (
-        <div className="modal-backdrop" onClick={()=>setShowAssignModal(false)}>
-          <div className="modal modal-wide" onClick={e=>e.stopPropagation()}>
-            <h2>Assign Materials to {client.name}</h2>
-            <input className="search-input" placeholder="Search library…" value={assignSearch} autoFocus onChange={e=>setAssignSearch(e.target.value)} />
-            <div className="assign-list">
-              {filteredUnassigned.length===0 ? (
-                <p className="empty-msg">All materials already assigned, or none match.</p>
-              ) : filteredUnassigned.map(m => (
-                <MaterialCard key={m.id} material={m} onOpen={openMaterial} showAssign onAssign={mat=>store.assignMaterial(clientId,mat.id)} />
-              ))}
-            </div>
-            <div className="form-actions"><button className="btn-primary" onClick={()=>setShowAssignModal(false)}>Done</button></div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -175,38 +104,4 @@ function getAge(dob) {
   let age = now.getFullYear() - dob.getFullYear()
   if (now.getMonth() < dob.getMonth() || (now.getMonth()===dob.getMonth() && now.getDate()<dob.getDate())) age--
   return age
-}
-
-// Copy or move another client's whole assigned material list into this client
-function TransferModal({ store, targetClient, onClose }) {
-  const others = store.clients.filter(c => c.id !== targetClient.id)
-  const [fromId, setFromId] = useState(others[0]?.id || '')
-  const from = store.clients.find(c => c.id === fromId)
-  const count = from?.materialIds?.length || 0
-  const run = (move) => {
-    store.transferClientMaterials(fromId, targetClient.id, { move })
-    onClose()
-  }
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>Bring materials into {targetClient.name}</h2>
-        <label>From client
-          <select value={fromId} onChange={e => setFromId(e.target.value)}>
-            {others.map(c => <option key={c.id} value={c.id}>{c.name} ({c.materialIds?.length || 0})</option>)}
-          </select>
-        </label>
-        <p className="settings-note" style={{ marginTop: 8 }}>
-          {count === 0
-            ? 'That client has no materials assigned.'
-            : `Copy adds ${from.name}'s ${count} material${count>1?'s':''} to ${targetClient.name} (kept on both). Move transfers them and clears ${from.name}'s list.`}
-        </p>
-        <div className="form-actions">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-secondary" disabled={!count} onClick={() => run(true)}>Move</button>
-          <button className="btn-primary" disabled={!count} onClick={() => run(false)}>Copy</button>
-        </div>
-      </div>
-    </div>
-  )
 }
