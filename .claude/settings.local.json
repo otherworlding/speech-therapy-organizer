@@ -134,7 +134,8 @@
       "Bash(open ~/Desktop/Invoice-1002-dan.pdf)",
       "Bash(open \"/Volumes/Speech Therapy Organizer 1.0.0-arm64/Speech Therapy Organizer.app\")",
       "Bash(osascript -e 'quit app \"Speech Therapy Organizer\"')",
-      "Bash(pkill -f \"vite --port 5173\")"
+      "Bash(pkill -f \"vite --port 5173\")",
+      "Bash(hdiutil attach *)"
     ]
   }
 }
