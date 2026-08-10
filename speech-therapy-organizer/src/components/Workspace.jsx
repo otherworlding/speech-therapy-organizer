@@ -584,7 +584,8 @@ export default function Workspace({ store }) {
           </button>
         </div>
         {libTab === 'digital'
-          ? <FinderView store={store} excludeFolderId={[inPersonFolderId, ...mainCollectionFolderIds].filter(Boolean)} />
+          ? <FinderView store={store} excludeFolderId={[inPersonFolderId, ...mainCollectionFolderIds].filter(Boolean)}
+              autoSortByKind={store.settings?.autoSortImports !== false} />
           : inPersonFolderId && <FinderView store={store} scopeFolderId={inPersonFolderId} rootLabel="🤝 In-Person" />}
       </div>
 

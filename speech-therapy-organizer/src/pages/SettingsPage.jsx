@@ -335,6 +335,18 @@ export default function SettingsPage({ store }) {
       {/* ── Providers (billing identities) ── */}
       <ProvidersCard store={store} />
 
+      {/* ── Library ── */}
+      <div className="settings-card">
+        <div className="settings-card-header"><h2>📚 Library</h2></div>
+        <label className="checkbox-row">
+          <input type="checkbox"
+            checked={store.settings?.autoSortImports !== false}
+            onChange={e => store.updateSettings({ autoSortImports: e.target.checked })} />
+          Automatically sort PowerPoint games and videos/YouTube links into their own folders on import
+        </label>
+        <p className="settings-note">Only applies to imports into the general Library — anything dropped directly into a client's Main Collection or a session stays exactly where you put it.</p>
+      </div>
+
       {/* ── Zoom integration ── */}
       <div className="settings-card">
         <div className="settings-card-header">

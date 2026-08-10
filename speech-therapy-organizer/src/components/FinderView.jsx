@@ -144,7 +144,21 @@ function thumbFor(m) {
   return { icon: FILE_ICONS[extOf(m.filePath)] || '📎' }
 }
 
-export default function FinderView({ store, scopeFolderId = null, excludeFolderId = null, rootLabel = '🏠 Library' }) {
+// Which auto-sort system folder (if any) a flat imported file belongs in — only
+// checked when autoSortByKind is on (the general Library only, never a client's
+// Main Collection or a session, where organization is deliberate).
+const SYSTEM_FOLDER_DEFS = {
+  games: { label: 'Games (PowerPoint)', icon: '🎮', color: '#c97adb' },
+  videos: { label: 'Videos', icon: '🎬', color: '#f75f9f' },
+}
+function autoSortKind(filename) {
+  const ext = extOf(filename)
+  if (ext === 'pptx' || ext === 'ppt') return 'games'
+  if (['mp4', 'mov', 'avi', 'webm'].includes(ext)) return 'videos'
+  return null
+}
+
+export default function FinderView({ store, scopeFolderId = null, excludeFolderId = null, rootLabel = '🏠 Library', autoSortByKind = false }) {
   // excludeFolderId may be a single id or an array of ids (e.g. In-Person + every
   // client's Main Collection folder, all kept out of the general Digital library).
   const excludeFolderIds = excludeFolderId == null ? null : (Array.isArray(excludeFolderId) ? excludeFolderId : [excludeFolderId])
@@ -231,6 +245,20 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
     return false
   }
 
+  // Get-or-create the top-level "Games (PowerPoint)" / "Videos" auto-sort folder.
+  // Cached in a ref so a multi-file drop in one batch doesn't create it more than once
+  // (store.folders won't reflect a just-created folder until the next render).
+  const sysFolderCacheRef = useRef({})
+  const ensureSystemFolder = (kind) => {
+    if (sysFolderCacheRef.current[kind]) return sysFolderCacheRef.current[kind]
+    const existing = (store.folders || []).find(f => f.systemFolder === kind && !f.parentId)
+    if (existing) { sysFolderCacheRef.current[kind] = existing.id; return existing.id }
+    const def = SYSTEM_FOLDER_DEFS[kind]
+    const created = store.addFolder(def.label, def.color, null, { systemFolder: kind })
+    sysFolderCacheRef.current[kind] = created.id
+    return created.id
+  }
+
   // ── Import (files + recursive folders), no tagging gate ──
   const importDropped = useCallback(async (dropped, targetFolderId) => {
     if (!dropped.length) { setStatus('⚠ Drop produced no readable file paths.'); return }
@@ -250,8 +278,9 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
       } else {
         setImportProgress({ current: i + 1, of: dropped.length, filename: p.split('/').pop() })
         const dest = await window.api.copyToLibrary(p)
+        const kind = autoSortByKind ? autoSortKind(p) : null
         store.addMaterial({
-          title: stripExt(p.split('/').pop()), filePath: dest, folderId: targetFolderId,
+          title: stripExt(p.split('/').pop()), filePath: dest, folderId: kind ? ensureSystemFolder(kind) : targetFolderId,
           category: 'Language', tags: [], openExternal: isExternalFile(p),
         })
         files++
@@ -401,7 +430,8 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
   // ── Search (flat, across this tab's scope only) ──
   const q = search.trim().toLowerCase()
   const searchHits = q ? sortMaterials(scopedMaterials.filter(m =>
-    m.title?.toLowerCase().includes(q) || m.category?.toLowerCase().includes(q) || (m.tags||[]).some(t => t.toLowerCase().includes(q))
+    m.title?.toLowerCase().includes(q) || m.category?.toLowerCase().includes(q) || (m.tags||[]).some(t => t.toLowerCase().includes(q)) ||
+    kindLabel(m).toLowerCase().includes(q)
   )) : null
 
   const hereFolders = childFolders(currentFolderId)
@@ -447,7 +477,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
         onDragLeave={() => setDragOverFolder(d => d === f.id ? null : d)}
         onDrop={e => onFolderDrop(e, f)}>
         <button className="fx-del-x" title="Delete folder" onClick={e => { e.stopPropagation(); deleteKeys([key]) }}>🗑</button>
-        <span className="fx-icon" style={{ color: f.color }}>📁</span>
+        <span className="fx-icon" style={{ color: f.color }}>{SYSTEM_FOLDER_DEFS[f.systemFolder]?.icon || (f.mainCollection ? '🗂' : '📁')}</span>
         {renaming === f.id
           ? <input className="fx-rename" autoFocus defaultValue={f.name}
               onClick={e => e.stopPropagation()}
@@ -525,6 +555,14 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
           <div className="fx-quickseg">
             <button className={smartView === 'recent' ? 'active' : ''} onClick={() => { setPath([]); setSmartView(v => v === 'recent' ? null : 'recent') }}>🕘 Recent</button>
             <button className={smartView === 'pinned' ? 'active' : ''} onClick={() => { setPath([]); setSmartView(v => v === 'pinned' ? null : 'pinned') }}>📌 Pinned</button>
+          </div>
+          {/* Kind quick filters — reuse the search box (kindLabel is matched above), so this
+              is just a shortcut into the same search rather than a separate filter system. */}
+          <div className="fx-quickseg">
+            {[['powerpoint', '🎮 Games'], ['video', '🎬 Videos'], ['pdf', '📄 PDFs'], ['image', '🖼 Images']].map(([kw, label]) => (
+              <button key={kw} className={q === kw ? 'active' : ''}
+                onClick={() => setSearch(s => s.trim().toLowerCase() === kw ? '' : kw)}>{label}</button>
+            ))}
           </div>
           <div className="fx-sort">
             <select value={sortKey} onChange={e => { const k = e.target.value; setSortKey(k); setSortDir(k === 'added' || k === 'opened' ? 'desc' : 'asc') }} title="Sort by">
@@ -648,7 +686,8 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
       {/* YouTube link modal */}
       {linkOpen && (
         <LinkModal onSave={({ title, url, videoId }) => {
-          store.addMaterial({ type: 'youtube', title, url, videoId, folderId: currentFolderId, category: 'Language', tags: [] })
+          const folderId = autoSortByKind ? ensureSystemFolder('videos') : currentFolderId
+          store.addMaterial({ type: 'youtube', title, url, videoId, folderId, category: 'Language', tags: [] })
           setLinkOpen(false)
         }} onCancel={() => setLinkOpen(false)} />
       )}
