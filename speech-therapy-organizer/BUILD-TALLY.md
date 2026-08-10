@@ -11,13 +11,40 @@ _Last updated: 2026-08-09_
 
 | Metric | Value |
 |---|---|
-| Development span | 2026-06-18 → 2026-07-12 (~25 calendar days, part-time) |
-| Feature commits | 29 |
-| Hand-written source | ~7,400 lines across 35 files (JSX / JS / CSS) |
-| Full DMG builds run | ~80–90 (both arches across feature rounds + iterative test builds) |
-| Renderer-only builds | ~82 |
-| Final app size | 118 MB (Apple Silicon) · 122 MB (Intel) |
+| Development span | 2026-06-18 → 2026-08-09 (part-time) |
+| Feature commits | 32 |
+| Hand-written source | ~8,100 lines across 38 files (JSX / JS / CSS) |
+| Full DMG builds run | ~92–102 (both arches across feature rounds + iterative test builds) |
+| Renderer-only builds | ~90 |
+| Final app size | 122 MB (Apple Silicon) · 127 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 10 (2026-08-09): Client-page restructure, Library kind-sorting, Appearance presets
+Three rounds bundled into one build. **(1)** Moved the per-client folder tree
+(Main Collection, Session Materials, In-Person, Homework) off the shared
+"Library & Planner" sidebar and onto each client's own Detail page as a new
+"Materials & Sessions" tab — full page width instead of a 340px column meant to
+hold every client at once, with an embedded Library panel alongside it for
+dragging materials straight in (new `src/components/ClientMaterials.jsx`). The
+old flat "Materials" tab, Assign Material modal, and Transfer-from-another-client
+modal were retired as redundant. `Workspace.jsx`/the Library nav item is now a
+pure general-materials browser, no client list. **(2)** Library gained a "Move
+to…" flat folder picker (spans Library + every client's Main Collection, replaces
+drag-across-tabs), auto-sort-on-import for PowerPoint→Games and video/YouTube→
+Videos folders (general-Library-only, Settings toggle), a retroactive "Sort
+existing" action for pre-existing files, and kind-aware search/quick-filter
+chips. **(3)** Settings → Appearance: four color+font presets (Clinical Calm
+default, Warm & Playful, Focused Dark, Professional Slate) switchable instantly
+app-wide via CSS var overrides on `data-theme`.
+
+**Footprint note:** dev-mode fix-and-verify throughout (vite dev server in the
+Browser pane, real localStorage test data for FinderView/theme work; the
+computer-use tool against a freshly built arm64 DMG for the client-page
+restructure, against real production client data). Both arches built and
+smoke-tested — arm64 first per usual, verified live (real client "dan", real
+folders, all four Appearance presets switching correctly) before the Intel
+build; Intel build launched and verified under Rosetta on the same machine,
+confirmed shared userData state with the arm64 run.
 
 ### Round 9 (2026-08-09): Providers system + consolidated agency invoicing
 Replaced the single global branding + ad hoc per-client-override design from Round 7
