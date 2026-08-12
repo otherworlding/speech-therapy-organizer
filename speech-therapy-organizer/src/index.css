@@ -722,9 +722,15 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 /* Left padding clears the macOS traffic-light buttons so the client name doesn't overlap them */
 .session-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px 12px 82px; background: #1a2035; border-bottom: 1px solid var(--session-border); -webkit-app-region: drag; flex-shrink: 0; }
 .session-topbar button { -webkit-app-region: no-drag; }
-.session-client-name { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: white; }
+/* Practice branding — the masthead, large and on the left */
+.session-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.session-brand-logo { width: 34px; height: 34px; border-radius: 7px; object-fit: contain; background: rgba(255,255,255,0.08); flex-shrink: 0; }
+.session-brand-dot { font-size: 26px; flex-shrink: 0; }
+.session-brand-name { font-size: 20px; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Client — now secondary context, smaller, over on the right */
+.session-client-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.75); white-space: nowrap; }
 .session-type-badge { font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); padding: 3px 10px; border-radius: 12px; }
-.session-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.session-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; color: white; }
 .session-tabs { display: flex; gap: 6px; margin: 0 auto; -webkit-app-region: no-drag; }
 .session-tab { display: flex; align-items: center; gap: 8px; padding: 7px 18px; border-radius: 7px; border: 1px solid var(--session-border); background: transparent; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; -webkit-app-region: no-drag; }
 .session-tab:hover { background: rgba(255,255,255,0.07); color: white; }
@@ -732,10 +738,7 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 .session-tab-count { background: rgba(255,255,255,0.2); border-radius: 10px; padding: 1px 7px; font-size: 11px; }
 .session-exit-btn { background: rgba(255,255,255,0.07); border: 1px solid var(--session-border); color: rgba(255,255,255,0.6); border-radius: 7px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; -webkit-app-region: no-drag; white-space: nowrap; transition: all 0.15s; }
 .session-exit-btn:hover { background: rgba(220,50,50,0.3); color: white; }
-.session-right { display: flex; align-items: center; gap: 12px; -webkit-app-region: no-drag; }
-.session-provider-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; }
-.session-provider-badge img { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; background: rgba(255,255,255,0.08); }
-.session-provider-dot { font-size: 14px; }
+.session-right { display: flex; align-items: center; gap: 16px; -webkit-app-region: no-drag; }
 
 /* Session body layout */
 .session-body { flex: 1; display: flex; overflow: hidden; }

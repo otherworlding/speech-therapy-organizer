@@ -152,10 +152,14 @@ export default function SessionView({ store, clientId, tools, onExit, provider =
       {/* Top bar */}
       {!fullscreen && (
         <div className="session-topbar">
-          <div className="session-client-name">
-            <span className="session-avatar">{client.name[0].toUpperCase()}</span>
-            {client.name}
-            <span className="session-type-badge">{tools?.sessionType === 'in-person' ? '🤝 In-Person' : '💻 Online'}</span>
+          {/* Practice branding leads — whoever's billed under (the client's assigned
+              Provider, or the practice default) is the masthead now; the client is
+              context, over on the right. */}
+          <div className="session-brand">
+            {provider?.logoPath
+              ? <img className="session-brand-logo" src={`file://${provider.logoPath}`} alt="" />
+              : <span className="session-brand-dot">🏢</span>}
+            <span className="session-brand-name">{provider?.name || 'Practice'}</span>
           </div>
           <div className="session-tabs">
             <button className={`session-tab ${tab==='mine'?'active':''}`} onClick={()=>setTab('mine')}>
@@ -166,16 +170,11 @@ export default function SessionView({ store, clientId, tools, onExit, provider =
             </button>
           </div>
           <div className="session-right">
-            {/* Whose session this is billed under — the client's assigned Provider
-                (Billing tab), or the practice default if they don't have one set. */}
-            {provider && (
-              <span className="session-provider-badge" title={`Billed under ${provider.name}`}>
-                {provider.logoPath
-                  ? <img src={`file://${provider.logoPath}`} alt="" />
-                  : <span className="session-provider-dot">🏢</span>}
-                {provider.name}
-              </span>
-            )}
+            <div className="session-client-name">
+              <span className="session-avatar">{client.name[0].toUpperCase()}</span>
+              {client.name}
+              <span className="session-type-badge">{tools?.sessionType === 'in-person' ? '🤝 In-Person' : '💻 Online'}</span>
+            </div>
             <button className="session-exit-btn" onClick={() => setShowEnd(true)}>✕ End Session</button>
           </div>
         </div>
