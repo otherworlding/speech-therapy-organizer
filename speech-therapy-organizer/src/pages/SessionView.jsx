@@ -117,6 +117,14 @@ export default function SessionView({ store, clientId, tools, onExit }) {
     setShowHomework(true)
   }
 
+  // For testing/demoing without leaving a real session behind — deletes the record
+  // created at session start instead of saving it, and skips the homework-share step.
+  const handleAbortSession = () => {
+    store.deleteSession(sessionIdRef.current)
+    setShowEnd(false)
+    onExit()
+  }
+
 
   if (showHomework) {
     return (
@@ -295,6 +303,9 @@ export default function SessionView({ store, clientId, tools, onExit }) {
               The session log will be saved and you can generate a parent summary.
             </p>
             <div className="form-actions">
+              <button className="btn-danger" style={{ marginRight: 'auto' }} onClick={handleAbortSession} title="Discards this session entirely — no record is kept. Use this for testing/demoing.">
+                🗑 Abort (don't save)
+              </button>
               <button className="btn-secondary" onClick={() => setShowEnd(false)}>Keep Going</button>
               <button className="btn-primary" onClick={handleEndSession}>End & Save</button>
             </div>
