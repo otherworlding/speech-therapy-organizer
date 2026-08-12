@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import FinderView from './FinderView'
 import FileViewer from './FileViewer'
 import SessionAttachments from './SessionAttachments'
+import { duplicateTitleSet } from '../utils/duplicates'
 
 // The per-client half of what used to be the "Library & Planner" Workspace page —
 // Main Collection, Session Materials, In-Person, Homework — now living on the
@@ -151,15 +152,7 @@ function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHin
   // Same-named items in this picklist — same "might be an accidental duplicate" flag
   // FinderView shows for a folder, so it's consistent everywhere in the app, not just
   // the Library tree.
-  const dupTitles = (() => {
-    const counts = new Map()
-    for (const m of materials) {
-      const key = (m.title || '').trim().toLowerCase()
-      if (!key) continue
-      counts.set(key, (counts.get(key) || 0) + 1)
-    }
-    return new Set([...counts].filter(([, n]) => n > 1).map(([k]) => k))
-  })()
+  const dupTitles = duplicateTitleSet(materials)
 
   return (
     <div ref={ref} className={`ws-assigned ${view} size-${iconSize} ${dragOver ? 'drop-glow' : ''}`}

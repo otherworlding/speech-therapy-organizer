@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist'
 import FileViewer from './FileViewer'
 import { isExternalFile, externalLabel, youTubeId } from '../utils/fileTypes'
 import SyncMergeModal, { isSyncPayload } from './SyncMergeModal'
+import { duplicateTitleSet } from '../utils/duplicates'
 
 // If exactly one .json file was dropped, check whether it's a recognized sync file —
 // if so, hand it back so the caller can open the merge preview instead of importing it.
@@ -478,15 +479,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
   const hereMaterials = materialsIn(currentFolderId)
   // Flag same-named materials sitting in the same folder — easy to end up with
   // accidental duplicates when dragging things in from multiple places.
-  const duplicateTitles = (() => {
-    const counts = new Map()
-    for (const m of hereMaterials) {
-      const key = (m.title || '').trim().toLowerCase()
-      if (!key) continue
-      counts.set(key, (counts.get(key) || 0) + 1)
-    }
-    return new Set([...counts].filter(([, n]) => n > 1).map(([k]) => k))
-  })()
+  const duplicateTitles = duplicateTitleSet(hereMaterials)
   // Details/tagging panel is opened explicitly via the ⓘ button — NOT on selection,
   // so selecting/dragging a material never gets blocked by the panel.
   const inspectMaterial = inspectId ? store.materials.find(m => m.id === inspectId) : null
@@ -731,6 +724,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
           client={client}
           selectedKeys={[...selected]}
           rootLabel={rootLabel}
+          rootFolderId={rootId}
           onMove={(folderId) => {
             moveInto([...selected], folderId)
             setMoveToOpen(false)
@@ -800,7 +794,7 @@ function folderPathLabel(f, folders, clients) {
 // Flat, searchable "Move to…" picker spanning every folder in the app (Library +
 // every client's Main Collection) — replaces having to drag an item across tabs or
 // remember the ⌘C/⌘V trick to relocate something.
-function MoveToModal({ store, client, selectedKeys, rootLabel, onMove, onQuickAssign, onCancel }) {
+function MoveToModal({ store, client, selectedKeys, rootLabel, rootFolderId = null, onMove, onQuickAssign, onCancel }) {
   const [q, setQ] = useState('')
   const folders = store.folders || []
   const clients = store.clients || []
@@ -814,8 +808,10 @@ function MoveToModal({ store, client, selectedKeys, rootLabel, onMove, onQuickAs
   // A folder can't be moved into itself or into its own descendant
   const blocked = (fid) => draggedFolderIds.some(dfid => fid === dfid || isDescendant(fid, dfid))
 
+  // rootFolderId is already offered above as "back to this view's own root" — don't
+  // list it a second time under its own name in the generic folder list.
   const options = folders
-    .filter(f => !blocked(f.id))
+    .filter(f => !blocked(f.id) && f.id !== rootFolderId)
     .map(f => ({ id: f.id, label: folderPathLabel(f, folders, clients) }))
     .sort((a, b) => a.label.localeCompare(b.label))
   const query = q.trim().toLowerCase()
