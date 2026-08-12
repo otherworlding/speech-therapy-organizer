@@ -5,19 +5,54 @@ track it, offset it, and learn to code more efficiently. Measured metrics are
 reliable; the energy (kWh) figures are **honest estimates with wide error bars**,
 not precise measurements.
 
-_Last updated: 2026-08-09_
+_Last updated: 2026-08-12_
 
 ## Measured facts
 
 | Metric | Value |
 |---|---|
-| Development span | 2026-06-18 → 2026-08-09 (part-time) |
-| Feature commits | 32 |
-| Hand-written source | ~8,100 lines across 38 files (JSX / JS / CSS) |
-| Full DMG builds run | ~92–102 (both arches across feature rounds + iterative test builds) |
-| Renderer-only builds | ~90 |
+| Development span | 2026-06-18 → 2026-08-12 (part-time) |
+| Feature commits | 37 |
+| Hand-written source | ~8,900 lines across 41 files (JSX / JS / CSS) |
+| Full DMG builds run | ~98–108 (both arches across feature rounds + iterative test builds) |
+| Renderer-only builds | ~98 |
 | Final app size | 122 MB (Apple Silicon) · 127 MB (Intel) |
 | Dependency footprint | 461 MB node_modules |
+
+### Round 11 (2026-08-12): Abort Session, file-safety fixes, Messages send, Sage Practice theme, Planned Sessions
+Largest single round to date, in response to hands-on testing feedback. **Testing
+safety**: Abort Session (discards the record instead of saving it). **File safety**:
+fixed a real bug where two different same-named files could silently overwrite each
+other in the Library (now auto-suffixed `(2)`, `(3)`...); duplicate-name highlighting
+extended from the Library tree to the Session Materials/Homework picklists too, both
+sharing one `duplicateTitleSet()` helper. **UI**: unified two mismatched icon-tile
+scales into one global S/M/L setting; native OS file drag-out via Electron
+`webContents.startDrag` (external apps now receive the real file, not a drag-image
+screenshot); In-Person tab only shows for a client once they have an actual
+in-person appointment; Move to… gained quick "This Week's Session/Homework" options
+and stopped double-listing the current folder. **Messages/iMessage**: real
+attachment-capable send via AppleScript (`send ... to targetBuddy`), gated behind an
+in-app confirm-preview modal since — unlike the existing WhatsApp/Email links — this
+is a genuine send, not a compose window. **Branding**: sidebar/session now follow
+the active client's assigned Provider instead of always the practice default.
+**Appearance**: fifth preset "Sage Practice" — muted sage/clay grounded in real
+pediatric-therapy-room color psychology rather than a generic wellness-app pastel,
+designed with the `frontend-design` skill's two-pass brainstorm/critique process
+after mocking up the direction as a standalone artifact first. **Planned Sessions**:
+a new per-client queue of draft session plans — numbered by position, built ahead of
+time with real materials, manually linked to a calendar appointment (label swaps
+from "Session N" to the real date), and offered back at Start Session time
+(defaulting to today's linked plan if one exists). Caught and fixed a real
+stale-closure race in the store during this feature's own build: two chained
+mutator calls in one handler (`addAppointment` then `linkPlannedSessionToAppointment`)
+silently reverted each other because the second read pre-update state — fixed with
+a `dataRef` that updates synchronously inside `persist()`, not just on next render.
+
+**Footprint note:** dev-mode fix-and-verify throughout (vite dev server, JS-console-
+driven interaction to route around a flaky computer-use click layer this round,
+cross-checked against real DOM/localStorage state rather than trusting screenshots
+alone — which is exactly how the stale-closure appointment bug got caught before
+shipping). Both arches built and smoke-tested; arm64 first per usual.
 
 ### Round 10 (2026-08-09): Client-page restructure, Library kind-sorting, Appearance presets
 Three rounds bundled into one build. **(1)** Moved the per-client folder tree
