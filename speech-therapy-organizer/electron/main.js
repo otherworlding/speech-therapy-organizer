@@ -4,6 +4,23 @@ const path = require('path')
 const fs = require('fs')
 const os = require('os')
 
+// Two different source files can share a filename (e.g. two different "worksheet.pdf"
+// picked from different folders) — never let the second one silently overwrite the
+// first on disk. Only the flat single-file import path shares one destination folder
+// across every import, so this is the only copy site that actually needs it (folder
+// imports each get their own freshly timestamped destination folder already).
+function uniqueDestPath(dir, filename) {
+  const ext = path.extname(filename)
+  const base = path.basename(filename, ext)
+  let candidate = filename
+  let n = 2
+  while (fs.existsSync(path.join(dir, candidate))) {
+    candidate = `${base} (${n})${ext}`
+    n++
+  }
+  return path.join(dir, candidate)
+}
+
 function copyDirSync(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true })
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
@@ -378,8 +395,7 @@ ipcMain.handle('branding:clear-logo', async (_, key) => {
 ipcMain.handle('file:copy-to-library', async (_, srcPath) => {
   const libDir = path.join(DATA_DIR, 'files')
   if (!fs.existsSync(libDir)) fs.mkdirSync(libDir, { recursive: true })
-  const filename = path.basename(srcPath)
-  const destPath = path.join(libDir, filename)
+  const destPath = uniqueDestPath(libDir, path.basename(srcPath))
   fs.copyFileSync(srcPath, destPath)
   return destPath
 })

@@ -10,6 +10,7 @@ import ReportsPage from './pages/ReportsPage'
 import CalendarPage from './pages/CalendarPage'
 import SettingsPage from './pages/SettingsPage'
 import InvoiceTrackerPage from './pages/InvoiceTrackerPage'
+import { resolveProvider } from './utils/billing'
 
 export default function App() {
   const store = useStore()
@@ -44,8 +45,6 @@ export default function App() {
     })
   }, [store.loaded, store.providers.length])
 
-  const defaultProvider = store.providers.find(p => p.isDefault) || store.providers[0] || null
-
   // Appearance preset — stamped on <html> so every CSS var override in index.css
   // (:root[data-theme="..."]) applies app-wide, including the sidebar.
   useEffect(() => {
@@ -54,15 +53,23 @@ export default function App() {
 
   if (!store.loaded) return <div className="loading">Loading…</div>
 
+  // Branding follows whichever client's context you're currently in — their
+  // assigned Provider (Billing tab) if they have one, otherwise the app-wide
+  // default. resolveProvider already does that fallback, including for a null
+  // client (Clients list, Library, Settings, etc. just get the default).
   if (view === 'session' && sessionClientId) {
-    return <SessionView store={store} clientId={sessionClientId} tools={sessionTools} onExit={endSession} />
+    const sessionProvider = resolveProvider(store.clients.find(c => c.id === sessionClientId), store.providers)
+    return <SessionView store={store} clientId={sessionClientId} tools={sessionTools} onExit={endSession} provider={sessionProvider} />
   }
+
+  const contextClient = view === 'client-detail' ? store.clients.find(c => c.id === selectedClientId) : null
+  const activeProvider = resolveProvider(contextClient, store.providers)
 
   return (
     <div className="app-shell">
       <div className="app-titlebar" />
       <div className="app-body">
-      <Sidebar view={view} setView={setView} provider={defaultProvider} />
+      <Sidebar view={view} setView={setView} provider={activeProvider} />
       <main className="main-content">
         {view === 'clients' && (
           <ClientsPage store={store} onOpenClient={openClient} onStartSession={requestSession} />

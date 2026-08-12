@@ -148,6 +148,19 @@ function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHin
     const ids = keysFromDrag(e)
     if (ids.length) onAssignKeys(ids)
   }
+  // Same-named items in this picklist — same "might be an accidental duplicate" flag
+  // FinderView shows for a folder, so it's consistent everywhere in the app, not just
+  // the Library tree.
+  const dupTitles = (() => {
+    const counts = new Map()
+    for (const m of materials) {
+      const key = (m.title || '').trim().toLowerCase()
+      if (!key) continue
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+    return new Set([...counts].filter(([, n]) => n > 1).map(([k]) => k))
+  })()
+
   return (
     <div ref={ref} className={`ws-assigned ${view} size-${iconSize} ${dragOver ? 'drop-glow' : ''}`}
       onMouseDown={mouseDown}
@@ -159,13 +172,14 @@ function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHin
       {materials.length === 0 && <div className="ws-drop-hint">{emptyHint}</div>}
       {materials.map(m => {
         const path = folderPath(m, folders)
+        const isDup = dupTitles.has((m.title || '').trim().toLowerCase())
         return (
         <div key={m.id} data-id={m.id} className={`ws-assigned-item ${view} ${sel.has(m.id) ? 'sel' : ''}`} draggable
           onDragStart={e => dragStart(e, m.id)}
           onClick={e => { e.stopPropagation(); click(e, m.id) }}
-          onDoubleClick={() => onPreview(m)} title={path ? `${m.title} — 📁 ${path}` : m.title}>
+          onDoubleClick={() => onPreview(m)} title={isDup ? `⚠ Another item here is also named “${m.title}”` : (path ? `${m.title} — 📁 ${path}` : m.title)}>
           <MiniThumb m={m} />
-          <span className="ws-assigned-name">{m.title}</span>
+          <span className={`ws-assigned-name ${isDup ? 'fx-name-dup' : ''}`}>{isDup && <span className="fx-dup-badge">⚠</span>}{m.title}</span>
           {view === 'list' && <span className="ws-assigned-path">{path || '—'}</span>}
           {view === 'list' && <span className="ws-assigned-kind">{kindLabel(m)}</span>}
           {onRemove && <button className="ws-unassign" title="Remove" onClick={e => { e.stopPropagation(); onRemove(m.id) }}>✕</button>}
@@ -539,14 +553,18 @@ export default function ClientMaterials({ store, client }) {
         </div>
         <div className="fx-viewseg ws-libtabs">
           <button className={libTab === 'digital' ? 'active' : ''} onClick={() => setLibTab('digital')}>📁 Digital</button>
-          <button className={libTab === 'inperson' ? 'active' : ''} onClick={() => setLibTab('inperson')}>
-            🤝 In-Person <span className="ws-count">{countInFolderTree(store.materials, store.folders || [], inPersonFolderId)}</span>
-          </button>
+          {/* Only worth showing once this client actually has an in-person session on the
+              books — otherwise it's just a tab that's never relevant to them. */}
+          {inPersonAppts.length > 0 && (
+            <button className={libTab === 'inperson' ? 'active' : ''} onClick={() => setLibTab('inperson')}>
+              🤝 In-Person <span className="ws-count">{countInFolderTree(store.materials, store.folders || [], inPersonFolderId)}</span>
+            </button>
+          )}
         </div>
-        {libTab === 'digital'
-          ? <FinderView store={store} excludeFolderId={[inPersonFolderId, ...mainCollectionFolderIds].filter(Boolean)}
-              autoSortByKind={store.settings?.autoSortImports !== false} client={client} />
-          : inPersonFolderId && <FinderView store={store} scopeFolderId={inPersonFolderId} rootLabel="🤝 In-Person" client={client} />}
+        {libTab === 'inperson' && inPersonAppts.length > 0 && inPersonFolderId
+          ? <FinderView store={store} scopeFolderId={inPersonFolderId} rootLabel="🤝 In-Person" client={client} />
+          : <FinderView store={store} excludeFolderId={[inPersonFolderId, ...mainCollectionFolderIds].filter(Boolean)}
+              autoSortByKind={store.settings?.autoSortImports !== false} client={client} />}
       </div>
 
       {/* Shared preview overlay */}

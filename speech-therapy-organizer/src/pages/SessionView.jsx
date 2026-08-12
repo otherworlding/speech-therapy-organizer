@@ -15,7 +15,7 @@ function matIcon(m) {
   return EXT_ICON[ext] || '📎'
 }
 
-export default function SessionView({ store, clientId, tools, onExit }) {
+export default function SessionView({ store, clientId, tools, onExit, provider = null }) {
   const client = store.clients.find(c => c.id === clientId)
   const [tab, setTab] = useState('mine')
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -156,7 +156,19 @@ export default function SessionView({ store, clientId, tools, onExit }) {
               Library <span className="session-tab-count">{store.materials.length}</span>
             </button>
           </div>
-          <button className="session-exit-btn" onClick={() => setShowEnd(true)}>✕ End Session</button>
+          <div className="session-right">
+            {/* Whose session this is billed under — the client's assigned Provider
+                (Billing tab), or the practice default if they don't have one set. */}
+            {provider && (
+              <span className="session-provider-badge" title={`Billed under ${provider.name}`}>
+                {provider.logoPath
+                  ? <img src={`file://${provider.logoPath}`} alt="" />
+                  : <span className="session-provider-dot">🏢</span>}
+                {provider.name}
+              </span>
+            )}
+            <button className="session-exit-btn" onClick={() => setShowEnd(true)}>✕ End Session</button>
+          </div>
         </div>
       )}
 
