@@ -18,6 +18,7 @@ export default function App() {
   const [selectedClientId, setSelectedClientId] = useState(null)
   const [sessionClientId, setSessionClientId] = useState(null)
   const [sessionTools, setSessionTools] = useState(null)
+  const [sessionPlannedId, setSessionPlannedId] = useState(null)
   const [showSetup, setShowSetup] = useState(false)
   const [setupClientId, setSetupClientId] = useState(null)
 
@@ -25,13 +26,14 @@ export default function App() {
   const goBack = () => { setSelectedClientId(null); setView('clients') }
 
   const requestSession = (id) => { setSetupClientId(id); setShowSetup(true) }
-  const startSession = (tools) => {
+  const startSession = (tools, plannedSessionId = null) => {
     setShowSetup(false)
     setSessionClientId(setupClientId)
     setSessionTools(tools)
+    setSessionPlannedId(plannedSessionId)
     setView('session')
   }
-  const endSession = () => { setSessionClientId(null); setSessionTools(null); setView('clients') }
+  const endSession = () => { setSessionClientId(null); setSessionTools(null); setSessionPlannedId(null); setView('clients') }
 
   // One-time migration: seed a default Provider from the old global branding settings
   // (appName/logoPath) so existing users don't lose their sidebar identity when the
@@ -59,7 +61,7 @@ export default function App() {
   // client (Clients list, Library, Settings, etc. just get the default).
   if (view === 'session' && sessionClientId) {
     const sessionProvider = resolveProvider(store.clients.find(c => c.id === sessionClientId), store.providers)
-    return <SessionView store={store} clientId={sessionClientId} tools={sessionTools} onExit={endSession} provider={sessionProvider} />
+    return <SessionView store={store} clientId={sessionClientId} tools={sessionTools} onExit={endSession} provider={sessionProvider} plannedSessionId={sessionPlannedId} />
   }
 
   const contextClient = view === 'client-detail' ? store.clients.find(c => c.id === selectedClientId) : null
@@ -88,6 +90,7 @@ export default function App() {
       {showSetup && setupClientId && (
         <SessionSetup
           client={store.clients.find(c => c.id === setupClientId)}
+          store={store}
           onStart={startSession}
           onCancel={() => setShowSetup(false)}
         />

@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 // 15–30 in 5s, then every 5 minutes up to 90
 const DURATIONS = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
 
-export default function SessionSetup({ client, onStart, onCancel }) {
+export default function SessionSetup({ client, store, onStart, onCancel }) {
   const [tools, setTools] = useState({
     sessionType: 'online',
     timer: true, timerMins: 45,
@@ -14,6 +14,20 @@ export default function SessionSetup({ client, onStart, onCancel }) {
 
   const toggle = (key) => setTools(t => ({ ...t, [key]: !t[key] }))
   const set = (key, val) => setTools(t => ({ ...t, [key]: val }))
+
+  // A queued plan for this client — numbered the same way as their Planned Sessions
+  // list. If one's already linked to an appointment happening today, default to it
+  // (still changeable); otherwise start with nothing selected.
+  const clientPlanned = (store?.plannedSessions || [])
+    .filter(p => p.clientId === client.id)
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const todaysLinked = clientPlanned.find(p => {
+    if (!p.appointmentId) return false
+    const appt = (store?.appointments || []).find(a => a.id === p.appointmentId)
+    return appt?.date === todayStr
+  })
+  const [plannedSessionId, setPlannedSessionId] = useState(todaysLinked?.id || '')
 
   return (
     <div className="modal-backdrop">
@@ -92,9 +106,23 @@ export default function SessionSetup({ client, onStart, onCancel }) {
           />
         </div>
 
+        {clientPlanned.length > 0 && (
+          <label style={{ display: 'block', marginTop: 18 }}>
+            Load a planned session <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
+            <select value={plannedSessionId} onChange={e => setPlannedSessionId(e.target.value)}>
+              <option value="">— start fresh —</option>
+              {clientPlanned.map((p, i) => (
+                <option key={p.id} value={p.id}>
+                  {p.id === todaysLinked?.id ? '📌 ' : ''}Session {i + 1} ({(p.materialIds || []).length} item{(p.materialIds || []).length === 1 ? '' : 's'})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <div className="form-actions" style={{ marginTop: 24 }}>
           <button className="btn-secondary" onClick={onCancel}>Cancel</button>
-          <button className="btn-start-session-large" onClick={() => onStart(tools)}>
+          <button className="btn-start-session-large" onClick={() => onStart(tools, plannedSessionId || null)}>
             ▶ Start Session
           </button>
         </div>

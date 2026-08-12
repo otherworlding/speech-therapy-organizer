@@ -23,7 +23,13 @@ function monday(dateIso) {
 }
 function weekKey(dateIso) { return monday(dateIso).toISOString().slice(0, 10) }
 function weekLabel(dateIso) { return 'Week of ' + monday(dateIso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
-function shortDate(iso) { return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) }
+// Bare "YYYY-MM-DD" strings parse as UTC midnight by default, which displays as the
+// previous day in any timezone behind UTC — force local-midnight parsing instead
+// (same fix as fmtDate() in billing.js/invoicePdf.js).
+function shortDate(iso) {
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? new Date(iso + 'T00:00:00') : new Date(iso)
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
 function filesOfMaterial(m) {
   if (m.type === 'folder') return (m.items || []).map(i => i.filePath).filter(Boolean)
   if (m.type === 'image-deck') return (m.imagePaths || []).filter(Boolean)
@@ -344,12 +350,47 @@ function ArchiveChip({ mat, title, onPreview }) {
   )
 }
 
+// One draft session plan — build its material list and a prep note now, pick a real
+// date for it later. Reuses the same SelectableGrid as This Week's session, so
+// dragging materials in works identically.
+function PlannedSessionRow({ planned, store, clientView, iconSize, open, onToggle, onPreview, onDragStateChange }) {
+  const materials = store.materials.filter(m => (planned.materialIds || []).includes(m.id))
+  const [note, setNote] = useState(planned.notes || '')
+  const isDated = !!planned.appointmentId
+  return (
+    <div className="ws-planned-row">
+      <div className="ws-planned-head" onClick={onToggle}>
+        <span className="ws-caret">{open ? '▾' : '▸'}</span>
+        <span className="ws-planned-label">{planned.label}</span>
+        {isDated && <span className="ws-planned-dated">📌 scheduled</span>}
+        <span className="ws-count">{materials.length}</span>
+        <button className="fx-del-x ws-planned-del" title="Delete this plan"
+          onClick={e => { e.stopPropagation(); if (window.confirm(`Delete "${planned.label}"? This can't be undone.`)) store.deletePlannedSession(planned.id) }}>🗑</button>
+      </div>
+      {open && (
+        <div className="ws-planned-body">
+          <SelectableGrid materials={materials} view={clientView} iconSize={iconSize} folders={store.folders || []}
+            onAssignKeys={ids => store.updatePlannedSession(planned.id, { materialIds: [...new Set([...(planned.materialIds || []), ...ids])] })}
+            onRemove={id => store.updatePlannedSession(planned.id, { materialIds: (planned.materialIds || []).filter(x => x !== id) })}
+            onPreview={onPreview} onDragStateChange={onDragStateChange}
+            emptyHint="Drag materials here to prep this session →" />
+          <textarea className="ws-hw-note" placeholder="Prep notes for this session…" rows={2}
+            value={note} onChange={e => setNote(e.target.value)}
+            onBlur={() => store.updatePlannedSession(planned.id, { notes: note })} />
+          {!isDated && <div className="ws-planned-hint">Pick a date for this on the Schedule page when you're ready.</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ClientMaterials({ store, client }) {
   const [dragging, setDragging] = useState(false)
   const [preview, setPreview] = useState(null)
   const [fs, setFs] = useState(false)
-  const [open, setOpen] = useState({ session: true, sessionThis: true, sessionPrev: false, homework: true, hwThis: true, hwPast: false, inperson: true, ipUpcoming: true, ipReview: true, ipArchive: false, main: true })
+  const [open, setOpen] = useState({ session: true, sessionThis: true, sessionPlanned: false, sessionPrev: false, homework: true, hwThis: true, hwPast: false, inperson: true, ipUpcoming: true, ipReview: true, ipArchive: false, main: true })
   const toggle = k => setOpen(o => ({ ...o, [k]: !o[k] }))
+  const [openPlannedIds, setOpenPlannedIds] = useState(() => new Set())
   const [noteDraft, setNoteDraft] = useState(client.homeworkNote || '')
   const [clientView, setClientView] = useState('icon')
   const [libTab, setLibTab] = useState('digital')
@@ -371,6 +412,22 @@ export default function ClientMaterials({ store, client }) {
   }, [store.loaded, store.folders, client.id, client.name])
   const mainCollectionFolderId = (store.folders || []).find(f => f.mainCollection && f.clientId === client.id)?.id || null
   const mainCollectionFolderIds = (store.folders || []).filter(f => f.mainCollection).map(f => f.id)
+
+  // Numbered purely by queue position — never stored, so consuming/deleting one
+  // naturally renumbers the rest. Once linked to a real appointment (from the
+  // Schedule page), the label swaps from "Session N" to that appointment's date.
+  const plannedSessionsRaw = (store.plannedSessions || [])
+    .filter(p => p.clientId === client.id)
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
+  let unscheduledCount = 0
+  const plannedWithLabels = plannedSessionsRaw.map(p => {
+    if (p.appointmentId) {
+      const appt = (store.appointments || []).find(a => a.id === p.appointmentId)
+      return { ...p, label: appt ? shortDate(appt.date) : 'Session (date TBD)' }
+    }
+    unscheduledCount++
+    return { ...p, label: `Session ${unscheduledCount}` }
+  })
 
   const assigned = store.materials.filter(m => client.materialIds?.includes(m.id))
   const homework = store.materials.filter(m => (client.homeworkIds || []).includes(m.id))
@@ -435,6 +492,19 @@ export default function ClientMaterials({ store, client }) {
                       onRemove={id => store.unassignMaterial(client.id, id)}
                       onPreview={setPreview} onDragStateChange={setDragging}
                       emptyHint="Drag materials here from the right →" />
+                  )}
+                  <FolderHead sub open={open.sessionPlanned} onToggle={() => toggle('sessionPlanned')} icon="📅" label="Planned Sessions" count={plannedWithLabels.length}
+                    right={<button className="ws-addsession-btn" onClick={() => store.addPlannedSession({ clientId: client.id })}>+ Add Session</button>} />
+                  {open.sessionPlanned && (
+                    <div className="ws-planned-list">
+                      {plannedWithLabels.length === 0 && <div className="ws-none">Build a session's materials ahead of time — pick a date for it later when you schedule the appointment.</div>}
+                      {plannedWithLabels.map(p => (
+                        <PlannedSessionRow key={p.id} planned={p} store={store} clientView={clientView} iconSize={iconSize}
+                          open={openPlannedIds.has(p.id)}
+                          onToggle={() => setOpenPlannedIds(s => { const n = new Set(s); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n })}
+                          onPreview={setPreview} onDragStateChange={setDragging} />
+                      ))}
+                    </div>
                   )}
                   <FolderHead sub open={open.sessionPrev} onToggle={() => toggle('sessionPrev')} icon="📁" label="Previous Sessions" count={prevSessionWeeks.length} />
                   {open.sessionPrev && (

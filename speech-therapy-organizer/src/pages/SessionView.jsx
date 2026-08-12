@@ -16,12 +16,17 @@ function matIcon(m) {
   return EXT_ICON[ext] || '📎'
 }
 
-export default function SessionView({ store, clientId, tools, onExit, provider = null }) {
+export default function SessionView({ store, clientId, tools, onExit, provider = null, plannedSessionId = null }) {
   const client = store.clients.find(c => c.id === clientId)
+  const plannedSession = plannedSessionId ? (store.plannedSessions || []).find(p => p.id === plannedSessionId) : null
   const [tab, setTab] = useState('mine')
   const [currentIdx, setCurrentIdx] = useState(0)
+  // A loaded planned session's materials seed the playlist instead of the plain
+  // assigned list — that's the whole point of prepping one in advance.
   const [playlist, setPlaylist] = useState(() =>
-    store.materials.filter(m => client?.materialIds?.includes(m.id))
+    plannedSession
+      ? store.materials.filter(m => (plannedSession.materialIds || []).includes(m.id))
+      : store.materials.filter(m => client?.materialIds?.includes(m.id))
   )
   const [fullscreen, setFullscreen] = useState(false)
   const [libSearch, setLibSearch] = useState('')
@@ -114,6 +119,9 @@ export default function SessionView({ store, clientId, tools, onExit, provider =
     store.updateSession(sessionIdRef.current, {
       duration, materialsUsed: used, sessionNotes, tokensEarned,
     })
+    // A loaded plan is consumed only on a real save — aborting leaves it in the
+    // queue untouched, so testing/demoing never destroys real prep work.
+    if (plannedSession) store.deletePlannedSession(plannedSession.id)
     setShowEnd(false)
     setShowHomework(true)
   }

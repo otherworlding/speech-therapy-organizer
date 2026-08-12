@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 const isElectron = typeof window !== 'undefined' && window.api
 const EMPTY = {
-  clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [], invoices: [], providers: [],
-  tombstones: { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {}, providers: {} },
+  clients: [], materials: [], sessions: [], goals: [], appointments: [], settings: {}, folders: [], invoices: [], providers: [], plannedSessions: [],
+  tombstones: { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {}, providers: {}, plannedSessions: {} },
 }
-const COLLECTIONS = ['clients', 'materials', 'sessions', 'appointments', 'goals', 'folders', 'invoices', 'providers']
+const COLLECTIONS = ['clients', 'materials', 'sessions', 'appointments', 'goals', 'folders', 'invoices', 'providers', 'plannedSessions']
 
 function now() { return new Date().toISOString() }
-function emptyTombstones() { return { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {}, providers: {} } }
+function emptyTombstones() { return { clients: {}, materials: {}, sessions: {}, appointments: {}, goals: {}, folders: {}, invoices: {}, providers: {}, plannedSessions: {} } }
 
 function localLoad() {
   try { return { ...EMPTY, ...JSON.parse(localStorage.getItem('sto_data')) } }
@@ -72,18 +72,26 @@ export function mergeData(local, remote) {
 
 export function useStore() {
   const [data, setData] = useState(EMPTY)
+  // Mirrors `data` but updates synchronously (React's setData doesn't take effect
+  // until the next render) — needed when one handler chains two mutator calls back
+  // to back in the same tick; the second one must see what the first just wrote,
+  // not the stale pre-update `data` closure, or it silently reverts the first change.
+  const dataRef = useRef(data)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     async function init() {
       const d = isElectron ? await window.api.loadData() : localLoad()
-      setData({ ...EMPTY, ...d, tombstones: { ...emptyTombstones(), ...(d.tombstones || {}) } })
+      const loadedData = { ...EMPTY, ...d, tombstones: { ...emptyTombstones(), ...(d.tombstones || {}) } }
+      dataRef.current = loadedData
+      setData(loadedData)
       setLoaded(true)
     }
     init()
   }, [])
 
   const persist = useCallback((next) => {
+    dataRef.current = next
     setData(next)
     if (isElectron) window.api.saveData(next)
     else localSave(next)
@@ -121,6 +129,7 @@ export function useStore() {
       goals: data.goals.filter(g => g.clientId !== id),
       appointments: (data.appointments || []).filter(a => a.clientId !== id),
       invoices: (data.invoices || []).filter(i => i.clientId !== id),
+      plannedSessions: (data.plannedSessions || []).filter(p => p.clientId !== id),
     }
     // The client's Main Collection folder is theirs alone — clean it up (and any
     // subfolders/materials inside it) the same way deleteFolder cascades, so it
@@ -399,6 +408,53 @@ export function useStore() {
     })
   }
 
+  // ── Planned Sessions ──────────────────────────────────────────────────
+  // A queue of draft session plans built ahead of time — materials + notes, no date
+  // yet. Numbered by queue position in the UI (derived, not stored), so consuming one
+  // naturally renumbers the rest. `clientId` OR `classId` is set, never both — classId
+  // isn't used anywhere yet (Classes/group sessions is a future feature) but the field
+  // exists now so that feature can reuse this same queue for a whole group later
+  // instead of needing its own parallel system.
+  // These four read/write via dataRef.current rather than the closed-over `data` —
+  // linkPlannedSessionToAppointment in particular is always called immediately after
+  // addAppointment/updateAppointment in the same handler (see CalendarPage.jsx), and
+  // needs to see what that just wrote, not the pre-update state.
+  const addPlannedSession = ({ clientId = null, classId = null, materialIds = [], notes = '' }) => {
+    const p = { id: uuidv4(), clientId, classId, materialIds, notes, appointmentId: null, createdAt: now(), updatedAt: now() }
+    persist({ ...dataRef.current, plannedSessions: [...(dataRef.current.plannedSessions || []), p] })
+    return p
+  }
+  const updatePlannedSession = (id, updates) => {
+    persist({ ...dataRef.current, plannedSessions: (dataRef.current.plannedSessions || []).map(p => p.id === id ? { ...p, ...updates, updatedAt: now() } : p) })
+  }
+  const deletePlannedSession = (id) => {
+    const cur = dataRef.current
+    const plannedSessions = cur.plannedSessions || []
+    const doomed = plannedSessions.find(p => p.id === id)
+    // Clear the reverse link on its appointment too, if it had one, so the appointment
+    // doesn't keep pointing at a planned session that no longer exists.
+    const appointments = doomed?.appointmentId
+      ? (cur.appointments || []).map(a => a.id === doomed.appointmentId ? { ...a, plannedSessionId: null, updatedAt: now() } : a)
+      : cur.appointments
+    persist(tombstone({ ...cur, plannedSessions: plannedSessions.filter(p => p.id !== id), appointments }, 'plannedSessions', id))
+  }
+  // Link/unlink a planned session to a specific calendar appointment — sets both
+  // sides so either can look the other up (the planned session's label swaps from
+  // "Session N" to the appointment's real date; SessionSetup can offer the plan tied
+  // to whichever appointment you're about to start).
+  const linkPlannedSessionToAppointment = (plannedSessionId, appointmentId) => {
+    const cur = dataRef.current
+    persist({
+      ...cur,
+      plannedSessions: (cur.plannedSessions || []).map(p => {
+        if (p.id === plannedSessionId) return { ...p, appointmentId, updatedAt: now() }
+        if (p.appointmentId === appointmentId && p.id !== plannedSessionId) return { ...p, appointmentId: null, updatedAt: now() } // an appointment can only hold one plan
+        return p
+      }),
+      appointments: (cur.appointments || []).map(a => a.id === appointmentId ? { ...a, plannedSessionId: plannedSessionId || null, updatedAt: now() } : a),
+    })
+  }
+
   // ── Invoices ──────────────────────────────────────────────────────────
   // A generated bill for a client covering a date range of sessions. Line items are
   // a snapshot at generation time (title/date/duration/rate/amount) — later edits to
@@ -477,6 +533,7 @@ export function useStore() {
     folders: data.folders || [],
     invoices: data.invoices || [],
     providers: data.providers || [],
+    plannedSessions: data.plannedSessions || [],
     loaded,
     addClient, updateClient, deleteClient, assignMaterial, unassignMaterial,
     assignMaterials, transferClientMaterials, assignHomework, unassignHomework,
@@ -485,6 +542,7 @@ export function useStore() {
     addGoal, updateGoal, deleteGoal, addGoalProgress,
     addAppointment, updateAppointment, deleteAppointment,
     addAppointmentAttachment, removeAppointmentAttachment,
+    addPlannedSession, updatePlannedSession, deletePlannedSession, linkPlannedSessionToAppointment,
     addFolder, updateFolder, deleteFolder, dissolveFolder,
     addInvoice, updateInvoice, deleteInvoice, markInvoicePaid,
     addProvider, updateProvider, setDefaultProvider, deleteProvider,

@@ -104,14 +104,21 @@ function buildIcs({ appt, client, zoomLink }) {
   ].filter(Boolean).join('\r\n')
 }
 
-function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, onDelete, onCancel, isNew }) {
+function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, plannedSessions, onSave, onDelete, onCancel, isNew }) {
   const [f, setF] = useState({
     clientId: appt.clientId || clients[0]?.id || '',
     time: appt.time,
     durationMins: appt.durationMins || 45,
     notes: appt.notes || '',
     sessionType: appt.sessionType || 'online',
+    plannedSessionId: appt.plannedSessionId || '',
   })
+  // Plans belonging to this client that are either still unscheduled, or already
+  // tied to this same appointment (so editing doesn't drop the current selection).
+  // Numbered by queue position, same convention as the client's own Planned Sessions list.
+  const clientPlanned = (plannedSessions || [])
+    .filter(p => p.clientId === f.clientId && (!p.appointmentId || p.appointmentId === appt.id))
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
   const [zoomInfo, setZoomInfo] = useState({
     zoomMeetingId: appt.zoomMeetingId || null,
     zoomJoinUrl: appt.zoomJoinUrl || null,
@@ -132,7 +139,7 @@ function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, on
   const submit = (e) => {
     e.preventDefault()
     if (!f.clientId) return
-    onSave({ ...f, ...zoomInfo, durationMins: Number(f.durationMins) })
+    onSave({ ...f, ...zoomInfo, durationMins: Number(f.durationMins), plannedSessionId: f.plannedSessionId || null })
   }
 
   const createZoomMeeting = async () => {
@@ -224,6 +231,16 @@ function ApptModal({ appt, clients, clientColor, zoomLink, zoomCreds, onSave, on
             <textarea rows={2} value={f.notes} onChange={e => setF(p => ({ ...p, notes: e.target.value }))}
               placeholder="Focus areas, reminders…" />
           </label>
+          {clientPlanned.length > 0 && (
+            <label>Planned session <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
+              <select value={f.plannedSessionId || ''} onChange={e => setF(p => ({ ...p, plannedSessionId: e.target.value }))}>
+                <option value="">— none, build the playlist live —</option>
+                {clientPlanned.map((p, i) => (
+                  <option key={p.id} value={p.id}>Session {i + 1} ({(p.materialIds || []).length} item{(p.materialIds || []).length === 1 ? '' : 's'})</option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {zoomCreds && f.sessionType === 'online' && (
             <div className="appt-zoom-box">
@@ -383,7 +400,8 @@ export default function CalendarPage({ store }) {
         appt = { ...appt, zoomMeetingId: result.meetingId, zoomJoinUrl: result.joinUrl, zoomStartUrl: result.startUrl }
       }
     }
-    store.addAppointment(appt)
+    const created = store.addAppointment(appt)
+    store.linkPlannedSessionToAppointment(f.plannedSessionId || null, created.id)
     setNewSlot(null)
     if (inviteMode === 'auto') {
       const link = appt.zoomJoinUrl || zoomLink
@@ -539,6 +557,7 @@ export default function CalendarPage({ store }) {
         <ApptModal
           appt={{ date: newSlot.date, time: newSlot.time, durationMins: 45 }}
           clients={store.clients} clientColor={clientColor} zoomLink={zoomLink} zoomCreds={zoomCreds} isNew
+          plannedSessions={store.plannedSessions}
           onSave={saveNewAppointment}
           onCancel={() => setNewSlot(null)}
         />
@@ -548,7 +567,12 @@ export default function CalendarPage({ store }) {
         <ApptModal
           appt={openAppt}
           clients={store.clients} clientColor={clientColor} zoomLink={zoomLink} zoomCreds={zoomCreds}
-          onSave={(f) => { store.updateAppointment(openAppt.id, f); setOpenAppt(null) }}
+          plannedSessions={store.plannedSessions}
+          onSave={(f) => {
+            store.updateAppointment(openAppt.id, f)
+            store.linkPlannedSessionToAppointment(f.plannedSessionId || null, openAppt.id)
+            setOpenAppt(null)
+          }}
           onDelete={() => removeAppointment(openAppt)}
           onCancel={() => setOpenAppt(null)}
         />
