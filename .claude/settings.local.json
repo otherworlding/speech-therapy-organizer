@@ -138,7 +138,8 @@
       "Bash(hdiutil attach *)",
       "Bash(grep -n \"fx-viewseg\\\\|fx-grid \\\\${view}\\\\|className={\\\\`fx-grid\" src/components/FinderView.jsx)",
       "Bash(grep -n \"const folders = store.folders\\\\|className={\\\\`fx-grid\" src/components/FinderView.jsx)",
-      "Bash(grep -n \"function SelectableGrid\\\\|className={\\\\`ws-assigned\\\\|ws-clientviewseg\\\\|clientView === 'icon'\" src/components/ClientMaterials.jsx)"
+      "Bash(grep -n \"function SelectableGrid\\\\|className={\\\\`ws-assigned\\\\|ws-clientviewseg\\\\|clientView === 'icon'\" src/components/ClientMaterials.jsx)",
+      "Bash(open \"/Volumes/Speech Therapy Organizer 1.0.0-arm64 1/Speech Therapy Organizer.app\")"
     ]
   }
 }
