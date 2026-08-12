@@ -275,6 +275,7 @@ const THEMES = [
   { id: 'warm', label: 'Warm & Playful', desc: 'Cream + coral, rounded Quicksand/Nunito — kid-facing.', swatches: ['#fdf6ec', '#ea7c4f', '#4a3628'], font: "'Quicksand', sans-serif" },
   { id: 'dark', label: 'Focused Dark', desc: 'Charcoal + teal, low glare for evening charting.', swatches: ['#14171f', '#2dd4bf', '#0d0f16'], font: '-apple-system, sans-serif' },
   { id: 'slate', label: 'Professional Slate', desc: 'Slate + navy, serif headings — formal/agency feel.', swatches: ['#eef1f5', '#2c4a6e', '#1a2634'], font: "'Source Serif 4', Georgia, serif" },
+  { id: 'sage', label: 'Sage Practice', desc: 'Sage + clay, muted like a real pediatric therapy room.', swatches: ['#f3efe7', '#5f7a68', '#232922'], font: "Optima, 'Avenir Next', sans-serif" },
 ]
 
 function ThemeCard({ store }) {

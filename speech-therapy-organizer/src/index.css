@@ -48,6 +48,17 @@
   --font-heading: 'Source Serif 4', Georgia, serif;
 }
 
+/* Muted, low-stimulation palette drawn from real pediatric-therapy-room color choices
+   (sage/clay instead of bright primaries) rather than a generic wellness-app pastel —
+   'Optima' is a real macOS system font, no webfont embed needed on a Mac-only app. */
+:root[data-theme="sage"] {
+  --bg: #f3efe7; --surface: #ffffff; --primary: #5f7a68; --primary-hover: #4c6355;
+  --text: #2b2e2a; --text-muted: #6b7269; --border: #e3e5de;
+  --sidebar-bg: #232922; --sidebar-text: #c9d1c6; --sidebar-active: #7c9885;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: Optima, 'Avenir Next', -apple-system, sans-serif;
+}
+
 body { font-family: var(--font-body); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 h1, h2, h3, .logo-text { font-family: var(--font-heading); }
 
