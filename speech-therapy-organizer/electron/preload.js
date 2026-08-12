@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   loadData: () => ipcRenderer.invoke('data:load'),
   saveData: (data) => ipcRenderer.invoke('data:save', data),
   startNativeDrag: (filePaths) => ipcRenderer.send('native-drag-start', filePaths),
+  sendMessage: (payload) => ipcRenderer.invoke('messages:send', payload),
   pickFiles: () => ipcRenderer.invoke('file:pick'),
   openFile: (filePath) => ipcRenderer.invoke('file:open', filePath),
   copyToLibrary: (srcPath) => ipcRenderer.invoke('file:copy-to-library', srcPath),

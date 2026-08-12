@@ -451,6 +451,9 @@ h1, h2, h3, .logo-text { font-family: var(--font-heading); }
 .ws-share-menu button { border: none; background: none; text-align: left; padding: 9px 14px; font-size: 13px; cursor: pointer; }
 .ws-share-menu button:hover { background: var(--bg); }
 .ws-share-status { position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--success); color: white; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.18); z-index: 30; white-space: nowrap; }
+.messages-preview { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-top: 4px; }
+.messages-preview-text { font-family: inherit; font-size: 13px; white-space: pre-wrap; color: var(--text); }
+.messages-preview-files { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
 
 /* Add-from-session opt-in picker */
 .ws-addsession-btn { font-size: 11px; padding: 3px 9px; border: 1px solid var(--border); background: var(--surface); border-radius: 7px; cursor: pointer; color: var(--text-muted); }

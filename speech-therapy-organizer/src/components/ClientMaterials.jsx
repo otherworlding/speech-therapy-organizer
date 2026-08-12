@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import FinderView from './FinderView'
 import FileViewer from './FileViewer'
 import SessionAttachments from './SessionAttachments'
+import MessagesShare from './MessagesShare'
 import { duplicateTitleSet } from '../utils/duplicates'
 
 // The per-client half of what used to be the "Library & Planner" Workspace page —
@@ -203,6 +204,7 @@ function ShareToClient({ sourceClientId, clients, materialIds, onShare, label })
 function ShareMenu({ client, materials, note }) {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState(null)
+  const [showMessages, setShowMessages] = useState(false)
   const dateStr = new Date().toISOString().slice(0, 10)
   const message = () => {
     const lines = materials.map(m => m.type === 'youtube' ? `• ${m.title}: ${m.url}` : `• ${m.title}`)
@@ -244,10 +246,17 @@ function ShareMenu({ client, materials, note }) {
         <div className="ws-share-menu">
           <button onClick={whatsApp}>💬 WhatsApp</button>
           <button onClick={email}>✉️ Email</button>
+          {/* The only option here that actually attaches the files itself — the other
+              two open a compose window you still finish by hand. */}
+          <button onClick={() => { setShowMessages(true); setOpen(false) }}>📱 Messages (with attachments)</button>
           <button onClick={reveal}>📂 Reveal folder</button>
         </div>
       )}
       {status && <div className="ws-share-status">{status}</div>}
+      {showMessages && (
+        <MessagesShare client={client} message={message()} filePaths={materials.flatMap(filesOfMaterial)}
+          onClose={() => setShowMessages(false)} />
+      )}
     </div>
   )
 }

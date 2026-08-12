@@ -5,6 +5,7 @@ import SessionTimer from '../components/SessionTools/SessionTimer'
 import TokenBoard from '../components/SessionTools/TokenBoard'
 import ClinicianCues from '../components/SessionTools/ClinicianCues'
 import SessionAttachments from '../components/SessionAttachments'
+import MessagesShare from '../components/MessagesShare'
 
 const CATS = ['Language','Comprehension','Pragmatic','Age']
 const CAT_COLOR = { Language:'#4f8ef7', Comprehension:'#34c97a', Pragmatic:'#f7a84f', Age:'#c97adb' }
@@ -346,6 +347,7 @@ function HomeworkShare({ client, sessionMaterials, allMaterials, onLog, onExit }
   )
   const [folderInfo, setFolderInfo] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [showMessages, setShowMessages] = useState(false)
 
   // Candidate list: session materials first, plus any searched library material
   const q = addSearch.trim().toLowerCase()
@@ -415,10 +417,15 @@ function HomeworkShare({ client, sessionMaterials, allMaterials, onLog, onExit }
             <button className="btn-secondary" disabled={!chosen.size || busy} onClick={buildFolder}>📂 Folder &amp; Reveal</button>
             <button className="btn-secondary" disabled={busy} onClick={shareWhatsApp}>💬 WhatsApp</button>
             <button className="btn-secondary" disabled={busy} onClick={shareEmail}>✉️ Email</button>
+            <button className="btn-secondary" disabled={busy} onClick={() => setShowMessages(true)} title="Attaches the files itself — no manual drag needed">📱 Messages</button>
             <button className="btn-primary" onClick={() => { onLog({ homeworkNotes: note }); onExit() }}>Done</button>
           </div>
         </div>
       </div>
+      {showMessages && (
+        <MessagesShare client={client} message={fullMessage()} filePaths={chosenMats.flatMap(filesOfMaterial)}
+          onClose={() => setShowMessages(false)} />
+      )}
     </div>
   )
 }

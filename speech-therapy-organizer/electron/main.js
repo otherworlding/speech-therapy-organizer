@@ -187,6 +187,35 @@ ipcMain.on('native-drag-start', async (event, filePaths) => {
   event.sender.startDrag({ files: paths, file: paths[0], icon })
 })
 
+// Send an iMessage/SMS via Messages.app, with real file attachments — unlike the
+// wa.me/mailto: links used elsewhere, this is a genuine send, not a pre-filled
+// compose window, so the renderer is expected to show a confirm-before-send preview
+// (see MessagesShare.jsx) rather than firing this straight off a button click.
+function asAppleScriptString(str) {
+  const escaped = String(str || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  return escaped.split('\n').map(line => `"${line}"`).join(' & return & ')
+}
+ipcMain.handle('messages:send', async (_, { phone, text, filePaths }) => {
+  const cleanPhone = String(phone || '').replace(/[^\d+]/g, '')
+  if (!cleanPhone) return { success: false, error: 'No phone number on file for this client.' }
+  const lines = [
+    'tell application "Messages"',
+    '  set targetService to 1st service whose service type = iMessage',
+    `  set targetBuddy to buddy "${cleanPhone.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" of targetService`,
+  ]
+  if (text && text.trim()) lines.push(`  send (${asAppleScriptString(text)}) to targetBuddy`)
+  for (const fp of (filePaths || [])) {
+    if (fs.existsSync(fp)) lines.push(`  send (POSIX file "${fp.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}") to targetBuddy`)
+  }
+  lines.push('end tell')
+  return new Promise((resolve) => {
+    execFile('osascript', ['-e', lines.join('\n')], (err, stdout, stderr) => {
+      if (err) resolve({ success: false, error: (stderr || err.message || 'Could not send.').split('\n')[0] })
+      else resolve({ success: true })
+    })
+  })
+})
+
 // List available daily auto-backups
 ipcMain.handle('backup:list-auto', () => listAutoBackups())
 
