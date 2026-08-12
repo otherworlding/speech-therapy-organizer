@@ -19,7 +19,7 @@ export default function SessionSetup({ client, store, onStart, onCancel }) {
   // list. If one's already linked to an appointment happening today, default to it
   // (still changeable); otherwise start with nothing selected.
   const clientPlanned = (store?.plannedSessions || [])
-    .filter(p => p.clientId === client.id)
+    .filter(p => p.clientId === client?.id)
     .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
   const todayStr = new Date().toISOString().slice(0, 10)
   const todaysLinked = clientPlanned.find(p => {
@@ -28,6 +28,25 @@ export default function SessionSetup({ client, store, onStart, onCancel }) {
     return appt?.date === todayStr
   })
   const [plannedSessionId, setPlannedSessionId] = useState(todaysLinked?.id || '')
+
+  // Guarded after all hooks (rules of hooks), not before — if the client this was
+  // opened for doesn't resolve (stale id, deleted elsewhere), fail into a visible,
+  // dismissable dialog instead of throwing mid-render. An uncaught render error here
+  // previously meant a silent crash: no error boundary, so React aborts the update
+  // and the *previous* screen just sits there looking completely normal while no
+  // longer responding to clicks — exactly what a "stuck, but not frozen" report
+  // looks like from the outside.
+  if (!client) {
+    return (
+      <div className="modal-backdrop" onClick={onCancel}>
+        <div className="modal" onClick={e => e.stopPropagation()}>
+          <h2>Client not found</h2>
+          <p className="settings-note">This client may have been removed or renamed. Closing this and trying again is safe.</p>
+          <div className="form-actions"><button className="btn-primary" onClick={onCancel}>Close</button></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="modal-backdrop">
