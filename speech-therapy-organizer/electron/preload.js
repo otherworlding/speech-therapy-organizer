@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   getFilePath: (file) => webUtils.getPathForFile(file),
   loadData: () => ipcRenderer.invoke('data:load'),
   saveData: (data) => ipcRenderer.invoke('data:save', data),
+  startNativeDrag: (filePaths) => ipcRenderer.send('native-drag-start', filePaths),
   pickFiles: () => ipcRenderer.invoke('file:pick'),
   openFile: (filePath) => ipcRenderer.invoke('file:open', filePath),
   copyToLibrary: (srcPath) => ipcRenderer.invoke('file:copy-to-library', srcPath),

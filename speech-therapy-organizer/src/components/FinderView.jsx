@@ -158,7 +158,7 @@ function autoSortKind(filename) {
   return null
 }
 
-export default function FinderView({ store, scopeFolderId = null, excludeFolderId = null, rootLabel = '🏠 Library', autoSortByKind = false }) {
+export default function FinderView({ store, scopeFolderId = null, excludeFolderId = null, rootLabel = '🏠 Library', autoSortByKind = false, client = null }) {
   // excludeFolderId may be a single id or an array of ids (e.g. In-Person + every
   // client's Main Collection folder, all kept out of the general Digital library).
   const excludeFolderIds = excludeFolderId == null ? null : (Array.isArray(excludeFolderId) ? excludeFolderId : [excludeFolderId])
@@ -199,6 +199,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
   }, [])
 
   const folders = store.folders || []
+  const iconSize = store.settings?.iconSize || 'md'
   const rootId = scopeFolderId || null
   const currentFolderId = path.length ? path[path.length - 1] : rootId
 
@@ -435,6 +436,16 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
     if (!selected.has(key)) setSelected(new Set([key]))
     e.dataTransfer.setData('text/finder-keys', JSON.stringify(keys))
     e.dataTransfer.effectAllowed = 'move'
+    // Also start a real OS-level file drag (additive — the HTML5 drag above still
+    // powers in-app drop targets) so dropping onto WhatsApp/Mail/Finder/etc. sends
+    // the actual file instead of a screenshot of the tile.
+    if (window.api?.startNativeDrag) {
+      const paths = keys.filter(k => k.startsWith('m:'))
+        .map(k => store.materials.find(m => m.id === k.slice(2)))
+        .filter(m => m?.filePath)
+        .map(m => m.filePath)
+      if (paths.length) window.api.startNativeDrag(paths)
+    }
   }
   const onFolderDrop = async (e, folder) => {
     e.preventDefault(); e.stopPropagation(); setDragOverFolder(null); setRootDragOver(false)
@@ -465,6 +476,17 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
 
   const hereFolders = childFolders(currentFolderId)
   const hereMaterials = materialsIn(currentFolderId)
+  // Flag same-named materials sitting in the same folder — easy to end up with
+  // accidental duplicates when dragging things in from multiple places.
+  const duplicateTitles = (() => {
+    const counts = new Map()
+    for (const m of hereMaterials) {
+      const key = (m.title || '').trim().toLowerCase()
+      if (!key) continue
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+    return new Set([...counts].filter(([, n]) => n > 1).map(([k]) => k))
+  })()
   // Details/tagging panel is opened explicitly via the ⓘ button — NOT on selection,
   // so selecting/dragging a material never gets blocked by the panel.
   const inspectMaterial = inspectId ? store.materials.find(m => m.id === inspectId) : null
@@ -522,6 +544,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
     const key = 'm:' + m.id
     const sel = selected.has(key)
     const t = thumbFor(m)
+    const isDup = duplicateTitles.has((m.title || '').trim().toLowerCase())
     return (
       <div key={key} draggable data-key={key}
         className={`fx-item fx-material ${view} ${sel ? 'sel' : ''}`}
@@ -540,7 +563,9 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
             : t.img
               ? <span className="fx-thumb"><img src={`file://${t.img}`} alt="" loading="lazy" decoding="async" /></span>
               : <span className="fx-icon">{t.icon}</span>}
-        <span className="fx-name">{m.title}</span>
+        <span className={`fx-name ${isDup ? 'fx-name-dup' : ''}`} title={isDup ? `⚠ Another item in this folder is also named “${m.title}”` : undefined}>
+          {isDup && <span className="fx-dup-badge">⚠</span>}{m.title}
+        </span>
         <span className="fx-sub">
           {view === 'list'
             ? kindLabel(m)
@@ -607,6 +632,13 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
             <button className={view === 'icon' ? 'active' : ''} onClick={() => setView('icon')} title="Icon view">▦</button>
             <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')} title="List view">☰</button>
           </div>
+          {view === 'icon' && (
+            <div className="fx-viewseg" title="Icon size — same setting everywhere in the app">
+              {[['sm', 'S'], ['md', 'M'], ['lg', 'L']].map(([sz, label]) => (
+                <button key={sz} className={iconSize === sz ? 'active' : ''} onClick={() => store.updateSettings({ iconSize: sz })}>{label}</button>
+              ))}
+            </div>
+          )}
           <button className="btn-secondary fx-newfolder" onClick={() => setNewFolderOpen(true)}>＋ Folder</button>
           <button className="btn-secondary" onClick={pickFiles} disabled={importing}>📥 Files</button>
           <button className="btn-secondary" onClick={pickFolders} disabled={importing}>🗂 Folder</button>
@@ -662,7 +694,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
           <div className="fx-section">{smartView === 'recent' ? '🕘 Recently opened' : '📌 Pinned'} — {smartMaterials.length} item{smartMaterials.length !== 1 ? 's' : ''}</div>
         )}
 
-        <div className={`fx-grid ${view}`}>
+        <div className={`fx-grid ${view} size-${iconSize}`}>
           {view === 'list' && (
             <div className="fx-list-head"><span></span><span>Name</span><span>Kind</span></div>
           )}
@@ -696,12 +728,20 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
       {moveToOpen && (
         <MoveToModal
           store={store}
+          client={client}
           selectedKeys={[...selected]}
           rootLabel={rootLabel}
           onMove={(folderId) => {
             moveInto([...selected], folderId)
             setMoveToOpen(false)
             setStatus(`✓ Moved ${selected.size} item${selected.size > 1 ? 's' : ''}`)
+            setTimeout(() => setStatus(null), 3000)
+          }}
+          onQuickAssign={(kind, matIds) => {
+            if (kind === 'session') store.assignMaterials(client.id, matIds)
+            else store.assignHomework(client.id, matIds)
+            setMoveToOpen(false)
+            setStatus(`✓ Added ${matIds.length} item${matIds.length > 1 ? 's' : ''} to ${kind === 'session' ? "this week's session" : 'homework'}`)
             setTimeout(() => setStatus(null), 3000)
           }}
           onCancel={() => setMoveToOpen(false)}
@@ -760,10 +800,11 @@ function folderPathLabel(f, folders, clients) {
 // Flat, searchable "Move to…" picker spanning every folder in the app (Library +
 // every client's Main Collection) — replaces having to drag an item across tabs or
 // remember the ⌘C/⌘V trick to relocate something.
-function MoveToModal({ store, selectedKeys, rootLabel, onMove, onCancel }) {
+function MoveToModal({ store, client, selectedKeys, rootLabel, onMove, onQuickAssign, onCancel }) {
   const [q, setQ] = useState('')
   const folders = store.folders || []
   const clients = store.clients || []
+  const materialIds = selectedKeys.filter(k => k.startsWith('m:')).map(k => k.slice(2))
   const draggedFolderIds = selectedKeys.filter(k => k.startsWith('f:')).map(k => k.slice(2))
   const isDescendant = (candidateId, ancestorId) => {
     let cur = folders.find(f => f.id === candidateId)
@@ -784,7 +825,16 @@ function MoveToModal({ store, selectedKeys, rootLabel, onMove, onCancel }) {
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <h2>📁 Move to…</h2>
-        <input className="fx-search" autoFocus style={{ width: '100%', marginBottom: 10 }}
+        {/* Quickest, most-likely destinations first — this week's session and homework
+            for the client this material belongs to (only offered where we know which
+            client that is, and only for materials, not folders). */}
+        {client && materialIds.length > 0 && (
+          <div className="move-list move-list-quick">
+            <button className="move-item quick" onClick={() => onQuickAssign('session', materialIds)}>▶️ {client.name} — This Week's Session</button>
+            <button className="move-item quick" onClick={() => onQuickAssign('homework', materialIds)}>📋 {client.name} — This Week's Homework</button>
+          </div>
+        )}
+        <input className="fx-search" autoFocus style={{ width: '100%', margin: '10px 0' }}
           placeholder="Search folders…" value={q} onChange={e => setQ(e.target.value)} />
         <div className="move-list">
           <button className="move-item" onClick={() => onMove(null)}>{rootLabel || '🏠 Library (root)'}</button>

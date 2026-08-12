@@ -90,7 +90,7 @@ function countInFolderTree(materials, folders, rootId) {
   return materials.filter(m => chainToRoot(m.folderId || null).includes(rootId)).length
 }
 
-function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHint, onDragStateChange, view = 'icon', folders = [] }) {
+function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHint, onDragStateChange, view = 'icon', folders = [], iconSize = 'md' }) {
   const [sel, setSel] = useState(new Set())
   const [marquee, setMarquee] = useState(null)
   const [dragOver, setDragOver] = useState(false)
@@ -137,6 +137,11 @@ function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHin
     e.dataTransfer.setData('text/finder-keys', JSON.stringify(ids.map(i => 'm:' + i)))
     e.dataTransfer.effectAllowed = 'copy'
     onDragStateChange?.(true)
+    // Also start a real OS-level file drag — see FinderView.jsx's onItemDragStart for why.
+    if (window.api?.startNativeDrag) {
+      const paths = ids.map(i => materials.find(m => m.id === i)).filter(m => m?.filePath).map(m => m.filePath)
+      if (paths.length) window.api.startNativeDrag(paths)
+    }
   }
   const drop = (e) => {
     e.preventDefault(); setDragOver(false)
@@ -144,7 +149,7 @@ function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHin
     if (ids.length) onAssignKeys(ids)
   }
   return (
-    <div ref={ref} className={`ws-assigned ${view} ${dragOver ? 'drop-glow' : ''}`}
+    <div ref={ref} className={`ws-assigned ${view} size-${iconSize} ${dragOver ? 'drop-glow' : ''}`}
       onMouseDown={mouseDown}
       onDragOver={e => { e.preventDefault(); setDragOver(true) }}
       onDragLeave={() => setDragOver(false)}
@@ -332,6 +337,7 @@ export default function ClientMaterials({ store, client }) {
   const [noteDraft, setNoteDraft] = useState(client.homeworkNote || '')
   const [clientView, setClientView] = useState('icon')
   const [libTab, setLibTab] = useState('digital')
+  const iconSize = store.settings?.iconSize || 'md'
 
   const inPersonFolder = (store.folders || []).find(f => f.name === IN_PERSON_FOLDER_NAME && !f.parentId)
   const inPersonFolderId = inPersonFolder?.id || null
@@ -377,6 +383,13 @@ export default function ClientMaterials({ store, client }) {
             <button className={clientView === 'icon' ? 'active' : ''} onClick={() => setClientView('icon')} title="Icon view">▦</button>
             <button className={clientView === 'list' ? 'active' : ''} onClick={() => setClientView('list')} title="List view">☰</button>
           </div>
+          {clientView === 'icon' && (
+            <div className="fx-viewseg ws-clientviewseg" title="Icon size — same setting everywhere in the app">
+              {[['sm', 'S'], ['md', 'M'], ['lg', 'L']].map(([sz, label]) => (
+                <button key={sz} className={iconSize === sz ? 'active' : ''} onClick={() => store.updateSettings({ iconSize: sz })}>{label}</button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="ws-chips">
@@ -388,7 +401,7 @@ export default function ClientMaterials({ store, client }) {
               {open.main && (
                 <div className="ws-folder-body ws-main-collection">
                   {mainCollectionFolderId
-                    ? <FinderView store={store} scopeFolderId={mainCollectionFolderId} rootLabel="🗂 Main Collection" />
+                    ? <FinderView store={store} scopeFolderId={mainCollectionFolderId} rootLabel="🗂 Main Collection" client={client} />
                     : <div className="ws-none">Setting up…</div>}
                 </div>
               )}
@@ -401,7 +414,7 @@ export default function ClientMaterials({ store, client }) {
                 <div className="ws-folder-body">
                   <FolderHead sub open={open.sessionThis} onToggle={() => toggle('sessionThis')} icon="📂" label={`This Week — ${thisWeekLabel}`} count={assigned.length} />
                   {open.sessionThis && (
-                    <SelectableGrid materials={assigned} view={clientView} folders={store.folders || []}
+                    <SelectableGrid materials={assigned} view={clientView} iconSize={iconSize} folders={store.folders || []}
                       onAssignKeys={ids => store.assignMaterials(client.id, ids)}
                       onRemove={id => store.unassignMaterial(client.id, id)}
                       onPreview={setPreview} onDragStateChange={setDragging}
@@ -475,7 +488,7 @@ export default function ClientMaterials({ store, client }) {
 
                   {open.hwThis && (
                     <>
-                      <SelectableGrid materials={homework} view={clientView} folders={store.folders || []}
+                      <SelectableGrid materials={homework} view={clientView} iconSize={iconSize} folders={store.folders || []}
                         onAssignKeys={ids => store.assignHomework(client.id, ids)}
                         onRemove={id => store.unassignHomework(client.id, id)}
                         onPreview={setPreview} onDragStateChange={setDragging}
@@ -532,8 +545,8 @@ export default function ClientMaterials({ store, client }) {
         </div>
         {libTab === 'digital'
           ? <FinderView store={store} excludeFolderId={[inPersonFolderId, ...mainCollectionFolderIds].filter(Boolean)}
-              autoSortByKind={store.settings?.autoSortImports !== false} />
-          : inPersonFolderId && <FinderView store={store} scopeFolderId={inPersonFolderId} rootLabel="🤝 In-Person" />}
+              autoSortByKind={store.settings?.autoSortImports !== false} client={client} />
+          : inPersonFolderId && <FinderView store={store} scopeFolderId={inPersonFolderId} rootLabel="🤝 In-Person" client={client} />}
       </div>
 
       {/* Shared preview overlay */}

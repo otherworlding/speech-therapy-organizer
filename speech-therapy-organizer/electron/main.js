@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage } = require('electron')
 const { execFile } = require('child_process')
 const path = require('path')
 const fs = require('fs')
@@ -156,6 +156,19 @@ ipcMain.handle('data:load', () => {
   return d
 })
 ipcMain.handle('data:save', (_, data) => { saveData(data); return true })
+
+// Real OS-level file drag — so dropping a material onto WhatsApp/Mail/Finder/etc.
+// hands over the actual file, not a screenshot of the browser's drag-ghost tile.
+// Fired alongside (not instead of) the page's own HTML5 drag, so in-app drop
+// targets (folders, client playlists) keep working exactly as before.
+ipcMain.on('native-drag-start', async (event, filePaths) => {
+  const paths = (filePaths || []).filter(p => { try { return fs.existsSync(p) } catch { return false } })
+  if (!paths.length) return
+  let icon = null
+  try { icon = await app.getFileIcon(paths[0], { size: 'normal' }) } catch {}
+  if (!icon || icon.isEmpty()) icon = nativeImage.createEmpty()
+  event.sender.startDrag({ files: paths, file: paths[0], icon })
+})
 
 // List available daily auto-backups
 ipcMain.handle('backup:list-auto', () => listAutoBackups())
