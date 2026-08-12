@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import FileViewer from './FileViewer'
 import { isExternalFile, externalLabel, youTubeId } from '../utils/fileTypes'
@@ -479,7 +479,9 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
   const hereMaterials = materialsIn(currentFolderId)
   // Flag same-named materials sitting in the same folder — easy to end up with
   // accidental duplicates when dragging things in from multiple places.
-  const duplicateTitles = duplicateTitleSet(hereMaterials)
+  // Memoized — this ran on every render (searches, selection, drags) with no cache,
+  // real cost on a large folder that's just wasted work most renders don't need.
+  const duplicateTitles = useMemo(() => duplicateTitleSet(hereMaterials), [hereMaterials])
   // Details/tagging panel is opened explicitly via the ⓘ button — NOT on selection,
   // so selecting/dragging a material never gets blocked by the panel.
   const inspectMaterial = inspectId ? store.materials.find(m => m.id === inspectId) : null

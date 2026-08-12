@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import FinderView from './FinderView'
 import FileViewer from './FileViewer'
 import SessionAttachments from './SessionAttachments'
@@ -159,7 +159,7 @@ function SelectableGrid({ materials, onAssignKeys, onRemove, onPreview, emptyHin
   // Same-named items in this picklist — same "might be an accidental duplicate" flag
   // FinderView shows for a folder, so it's consistent everywhere in the app, not just
   // the Library tree.
-  const dupTitles = duplicateTitleSet(materials)
+  const dupTitles = useMemo(() => duplicateTitleSet(materials), [materials])
 
   return (
     <div ref={ref} className={`ws-assigned ${view} size-${iconSize} ${dragOver ? 'drop-glow' : ''}`}
