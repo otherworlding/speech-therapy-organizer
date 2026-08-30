@@ -720,7 +720,11 @@ label input:focus, label select:focus, label textarea:focus { border-color: var(
 /* ── Session View ── */
 .session-shell { display: flex; flex-direction: column; height: 100vh; background: var(--session-bg); color: white; overflow: hidden; }
 /* Left padding clears the macOS traffic-light buttons so the client name doesn't overlap them */
-.session-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px 12px 82px; background: #1a2035; border-bottom: 1px solid var(--session-border); -webkit-app-region: drag; flex-shrink: 0; }
+/* The 82px left padding clears macOS's traffic-light window controls (this view has
+   no sidebar to sit below); Windows/Linux use the normal title bar instead, so that
+   space would just be dead padding there. */
+.session-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: #1a2035; border-bottom: 1px solid var(--session-border); -webkit-app-region: drag; flex-shrink: 0; }
+:root[data-platform="darwin"] .session-topbar { padding-left: 82px; }
 .session-topbar button { -webkit-app-region: no-drag; }
 /* Practice branding — the masthead, large and on the left */
 .session-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }

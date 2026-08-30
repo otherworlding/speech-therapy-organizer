@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { fileManagerName } from '../utils/platform'
 import SyncMergeModal, { buildSyncPayload, isSyncPayload } from '../components/SyncMergeModal'
 
 const MARKETPLACE_URL = 'https://marketplace.zoom.us/develop/create'
@@ -113,7 +114,8 @@ function SyncCard({ store }) {
     setBusy(true)
     const res = await window.api.syncExport(JSON.stringify(buildSyncPayload(store.rawData)))
     setBusy(false)
-    if (res.success) setStatus(`✓ Sync file saved to ${res.path} and revealed in Finder — safe to email or AirDrop, it only contains client/material info, not the files themselves.`)
+    const shareHint = window.api?.platform === 'win32' ? 'email or a USB drive' : 'email or AirDrop'
+    if (res.success) setStatus(`✓ Sync file saved to ${res.path} and revealed in ${fileManagerName()} — safe to ${shareHint}, it only contains client/material info, not the files themselves.`)
     else if (!res.canceled) setStatus(`⚠ ${res.error}`)
   }
 
@@ -126,7 +128,7 @@ function SyncCard({ store }) {
     const subject = encodeURIComponent('Speech Therapy Organizer — Sync File')
     const body = encodeURIComponent(`Attached is my latest sync file. Drag it in from the folder that just opened, then attach it here before sending.\n\nOn the receiving computer: drop this file onto the Materials Library, or use Settings → Import & Merge Sync File.`)
     window.api.openExternal(`mailto:${to}?subject=${subject}&body=${body}`)
-    setStatus(`✓ Sync file revealed in Finder and an email draft opened — drag the file into the email before sending.`)
+    setStatus(`✓ Sync file revealed in ${fileManagerName()} and an email draft opened — drag the file into the email before sending.`)
   }
 
   const pickSyncFile = async () => {

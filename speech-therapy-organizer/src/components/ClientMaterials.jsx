@@ -4,6 +4,7 @@ import FileViewer from './FileViewer'
 import SessionAttachments from './SessionAttachments'
 import MessagesShare from './MessagesShare'
 import { duplicateTitleSet } from '../utils/duplicates'
+import { fileManagerName } from '../utils/platform'
 
 // The per-client half of what used to be the "Library & Planner" Workspace page —
 // Main Collection, Session Materials, In-Person, Homework — now living on the
@@ -224,7 +225,7 @@ function ShareMenu({ client, materials, note }) {
     const res = await window.api.createHomeworkFolder({ clientName: client.name, dateStr, filePaths, note })
     if (res?.success) {
       await window.api.openFile(res.folderPath)
-      setStatus(`📂 ${res.count} file${res.count === 1 ? '' : 's'} ready in Finder — drag ${res.count === 1 ? 'it' : 'them'} into the chat to send.`)
+      setStatus(`📂 ${res.count} file${res.count === 1 ? '' : 's'} ready in ${fileManagerName()} — drag ${res.count === 1 ? 'it' : 'them'} into the chat to send.`)
       setTimeout(() => setStatus(null), 8000)
     }
     return res

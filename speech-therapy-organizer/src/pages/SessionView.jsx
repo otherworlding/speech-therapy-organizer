@@ -6,6 +6,7 @@ import TokenBoard from '../components/SessionTools/TokenBoard'
 import ClinicianCues from '../components/SessionTools/ClinicianCues'
 import SessionAttachments from '../components/SessionAttachments'
 import MessagesShare from '../components/MessagesShare'
+import { fileManagerName } from '../utils/platform'
 
 const CATS = ['Language','Comprehension','Pragmatic','Age']
 const CAT_COLOR = { Language:'#4f8ef7', Comprehension:'#34c97a', Pragmatic:'#f7a84f', Age:'#c97adb' }
@@ -387,7 +388,7 @@ function HomeworkShare({ client, sessionMaterials, allMaterials, onLog, onExit }
     const num = (client.whatsapp || client.phone || '').replace(/[^\d]/g, '')
     const text = encodeURIComponent(fullMessage())
     if (num) window.api.openExternal(`https://wa.me/${num}?text=${text}`)
-    else { window.api.copyToClipboard(fullMessage()); alert('No WhatsApp number on file — message copied to clipboard. Attach the files from the folder that just opened in Finder.') }
+    else { window.api.copyToClipboard(fullMessage()); alert(`No WhatsApp number on file — message copied to clipboard. Attach the files from the folder that just opened in ${fileManagerName()}.`) }
   }
   const shareEmail = async () => {
     if (chosen.size) await buildFolder()
@@ -417,7 +418,7 @@ function HomeworkShare({ client, sessionMaterials, allMaterials, onLog, onExit }
           <div className="hw-pick-label">Message</div>
           <textarea className="notes-textarea" style={{ minHeight: 120, fontSize: 13 }} value={note} onChange={e => setNote(e.target.value)} />
 
-          {folderInfo && <div className="hw-folder-note">✓ Folder ready ({folderInfo.count} file{folderInfo.count!==1?'s':''}) — revealed in Finder. Attach the files to your message.</div>}
+          {folderInfo && <div className="hw-folder-note">✓ Folder ready ({folderInfo.count} file{folderInfo.count!==1?'s':''}) — revealed in {fileManagerName()}. Attach the files to your message.</div>}
 
           <div className="form-actions hw-actions">
             <button className="btn-secondary" onClick={onExit}>Skip &amp; Exit</button>

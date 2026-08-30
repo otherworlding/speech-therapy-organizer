@@ -420,7 +420,7 @@ export default function FinderView({ store, scopeFolderId = null, excludeFolderI
       const tag = (e.target.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return
       const mod = e.metaKey || e.ctrlKey
-      if (mod && e.key === 'c' && selected.size) { setClipboard({ keys: [...selected] }); setStatus(`Copied ${selected.size} item${selected.size>1?'s':''} — ⌘V to paste into a folder`); e.preventDefault() }
+      if (mod && e.key === 'c' && selected.size) { setClipboard({ keys: [...selected] }); setStatus(`Copied ${selected.size} item${selected.size>1?'s':''} — ${window.api?.platform === 'win32' ? 'Ctrl+V' : '⌘V'} to paste into a folder`); e.preventDefault() }
       else if (mod && e.key === 'v' && clipboard?.keys?.length) { moveInto(clipboard.keys, currentFolderId); setStatus(`Pasted ${clipboard.keys.length} item${clipboard.keys.length>1?'s':''} here`); setTimeout(()=>setStatus(null),3000); e.preventDefault() }
       else if ((e.key === 'Backspace' || e.key === 'Delete') && selected.size) {
         deleteSelected(); e.preventDefault()

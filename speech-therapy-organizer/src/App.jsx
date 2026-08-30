@@ -53,6 +53,12 @@ export default function App() {
     document.documentElement.dataset.theme = store.settings?.theme || 'calm'
   }, [store.settings?.theme])
 
+  // Same stamping approach for OS — the CSS only needs to reserve room for macOS's
+  // traffic-light window controls on darwin; Windows/Linux get the normal title bar.
+  useEffect(() => {
+    document.documentElement.dataset.platform = window.api?.platform || 'darwin'
+  }, [])
+
   if (!store.loaded) return <div className="loading">Loading…</div>
 
   // Branding follows whichever client's context you're currently in — their

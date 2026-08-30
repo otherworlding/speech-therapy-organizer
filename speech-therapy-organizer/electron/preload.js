@@ -8,6 +8,10 @@ function onImportProgress(callback) {
 }
 
 contextBridge.exposeInMainWorld('api', {
+  // Lets the renderer adjust chrome/wording that's genuinely platform-specific (the
+  // reserved space for macOS's traffic-light window controls, "Finder" vs "Explorer"
+  // wording, etc.) without needing a round-trip IPC call for something this static.
+  platform: process.platform,
   // Electron 32 removed File.path — this is the supported way to get a dropped file's path
   getFilePath: (file) => webUtils.getPathForFile(file),
   loadData: () => ipcRenderer.invoke('data:load'),
