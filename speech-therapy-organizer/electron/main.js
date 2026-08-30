@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, clipboard } = require('electron')
 const { execFile } = require('child_process')
 const path = require('path')
 const fs = require('fs')
@@ -31,16 +31,27 @@ function copyDirSync(src, dest) {
 }
 
 function findLibreOffice() {
-  const candidates = [
-    '/Applications/LibreOffice.app/Contents/MacOS/soffice',
-    '/usr/local/bin/soffice',
-    '/usr/bin/soffice',
-  ]
+  const candidates = process.platform === 'win32'
+    ? [
+        'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+        'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+      ]
+    : [
+        '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+        '/usr/local/bin/soffice',
+        '/usr/bin/soffice',
+      ]
   return candidates.find(p => fs.existsSync(p)) || null
 }
 
 const isDev = !app.isPackaged
-const DATA_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'SpeechTherapyOrganizer')
+// Same folder name as the existing Mac installs (~/Library/Application Support/
+// SpeechTherapyOrganizer) so nothing changes for current users — Windows gets the
+// equivalent per-user app-data root (%APPDATA%) via Electron's own path resolver
+// instead of a hardcoded macOS path.
+const DATA_DIR = process.platform === 'win32'
+  ? path.join(app.getPath('appData'), 'SpeechTherapyOrganizer')
+  : path.join(os.homedir(), 'Library', 'Application Support', 'SpeechTherapyOrganizer')
 const DATA_FILE = path.join(DATA_DIR, 'data.json')
 const FILES_DIR = path.join(DATA_DIR, 'files')
 const BACKUPS_DIR = path.join(DATA_DIR, 'backups')
@@ -118,7 +129,9 @@ function listAutoBackups() {
 function createWindow() {
   const win = new BrowserWindow({
     width: 1400, height: 900, minWidth: 1000, minHeight: 700,
-    titleBarStyle: 'hiddenInset',
+    // 'hiddenInset' (the custom traffic-light layout the CSS reserves space for) is
+    // a macOS-only Electron option — Windows/Linux just get the normal title bar.
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, nodeIntegration: false,
@@ -198,6 +211,13 @@ function asAppleScriptString(str) {
 ipcMain.handle('messages:send', async (_, { phone, text, filePaths }) => {
   const cleanPhone = String(phone || '').replace(/[^\d+]/g, '')
   if (!cleanPhone) return { success: false, error: 'No phone number on file for this client.' }
+  // There's no Windows equivalent of scripting Messages.app with a real attachment —
+  // no built-in iMessage, no OS API for it. Copy the text so the send isn't a dead
+  // end, but be upfront that it's a fallback, not the same capability.
+  if (process.platform !== 'darwin') {
+    clipboard.writeText(text || '')
+    return { success: false, clipboardFallback: true, error: 'Direct sending is Mac-only. The message text was copied to your clipboard — paste it into your texting app and attach the files yourself.' }
+  }
   const lines = [
     'tell application "Messages"',
     '  set targetService to 1st service whose service type = iMessage',
@@ -536,16 +556,41 @@ ipcMain.handle('folder:import-deck', async (_, srcFolder) => {
 })
 
 // Detect which presentation apps are installed
-ipcMain.handle('app:check-apps', () => ({
-  keynote:     fs.existsSync('/Applications/Keynote.app'),
-  powerpoint:  fs.existsSync('/Applications/Microsoft PowerPoint.app'),
-  libreoffice: fs.existsSync('/Applications/LibreOffice.app'),
-}))
+// Windows has no Keynote, and no `open -a <name>` — resolve a specific app to its
+// actual .exe path instead of addressing it by name the way macOS lets you.
+const WIN_APP_PATHS = {
+  'Microsoft PowerPoint': [
+    'C:\\Program Files\\Microsoft Office\\root\\Office16\\POWERPNT.EXE',
+    'C:\\Program Files (x86)\\Microsoft Office\\root\\Office16\\POWERPNT.EXE',
+  ],
+}
+function winAppPath(appName) {
+  if (appName === 'LibreOffice') return findLibreOffice()
+  return (WIN_APP_PATHS[appName] || []).find(p => fs.existsSync(p)) || null
+}
 
-// Open a file with a specific app by name (macOS `open -a`)
+ipcMain.handle('app:check-apps', () => {
+  if (process.platform === 'win32') {
+    return { keynote: false, powerpoint: !!winAppPath('Microsoft PowerPoint'), libreoffice: !!findLibreOffice() }
+  }
+  return {
+    keynote:     fs.existsSync('/Applications/Keynote.app'),
+    powerpoint:  fs.existsSync('/Applications/Microsoft PowerPoint.app'),
+    libreoffice: fs.existsSync('/Applications/LibreOffice.app'),
+  }
+})
+
+// Open a file with a specific app — macOS addresses the app by name (`open -a`);
+// Windows has no equivalent, so it launches the resolved .exe path directly instead.
 ipcMain.handle('file:open-with', async (_, { filePath, appName }) => {
   return new Promise(resolve => {
-    execFile('open', ['-a', appName, filePath], err => resolve(!err))
+    if (process.platform === 'win32') {
+      const exe = winAppPath(appName)
+      if (!exe) return resolve(false)
+      execFile(exe, [filePath], err => resolve(!err))
+    } else {
+      execFile('open', ['-a', appName, filePath], err => resolve(!err))
+    }
   })
 })
 

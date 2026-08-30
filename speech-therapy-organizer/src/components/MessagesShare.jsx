@@ -17,6 +17,9 @@ export default function MessagesShare({ client, message, filePaths = [], onClose
     const res = await window.api.sendMessage({ phone, text: message, filePaths })
     setBusy(false)
     if (res?.success) { setStatus('✓ Sent'); setTimeout(onClose, 1000) }
+    // The Windows fallback (clipboard copy) isn't a failure — say so in a neutral
+    // tone instead of the same red warning a real send error gets.
+    else if (res?.clipboardFallback) setStatus(`📋 ${res.error}`)
     else setStatus(`⚠ ${res?.error || 'Could not send — is Messages.app signed in?'}`)
   }
 
